@@ -1,9 +1,11 @@
 # ADR-0008: Add email/password registration alongside Google (amends ADR-0003)
 
 ## Status
-Accepted — 2026-07-28 (amends ADR-0003, which is NOT reversed — Google sign-in +
-Drive integration stays the long-term design; this adds a second, immediately
-usable path)
+**Partially superseded by ADR-0010 (2026-07-28)** — the "hybrid" part (Google +
+Credentials side by side) no longer applies; Google was removed and Credentials
+is now the only method. The `jwt` session-strategy decision and the
+`SEED_SUPERUSER_EMAIL`/allow-list-gated registration this ADR introduced are
+still exactly how auth works — only the "alongside Google" framing is gone.
 
 ## Context
 ADR-0003 chose Google as the *only* login method specifically to avoid running two

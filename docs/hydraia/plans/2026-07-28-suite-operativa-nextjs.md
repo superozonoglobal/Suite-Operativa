@@ -13,6 +13,15 @@ full-stack app on PostgreSQL, with Google sign-in as the only auth method and re
 Google Drive file integration, preserving the same 12 modules and the team's
 existing role/level model.
 
+> **Superseded scope (2026-07-28, ADR-0010):** Google sign-in and Google Drive
+> integration were cancelled after this plan was frozen — Credentials
+> (email + password + self-selected role) is the only auth method. Every
+> mention below of Google/Drive/`googleapis`/Picker/Task 7-1 (Phases 5 and
+> parts of 7) no longer applies; ADR-0010 is authoritative over this plan text
+> for that scope. Phases 0, 1, 2, 3, 4, and 6 below were executed as written
+> (with the Next.js 16 / Prisma 7 platform corrections noted further down) —
+> only the Google/Drive parts changed.
+
 **Architecture:** Next.js 15 (App Router) monolith. UI in Server/Client Components
 under `app/(app)/*`, API surface as Route Handlers under `app/api/**/route.ts`,
 shared business logic in `lib/services/*` called by both. Single PostgreSQL

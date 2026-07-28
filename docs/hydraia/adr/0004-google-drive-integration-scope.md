@@ -1,7 +1,9 @@
 # ADR-0004: Google Drive integration — real API, `drive.file` scope, per-entity file lists
 
 ## Status
-Accepted — 2026-07-28
+**Superseded by ADR-0010 (2026-07-28)** — the user decided against implementing
+Google Cloud at all; this design is not built. Kept for historical record of
+the original reasoning, not as a live plan.
 
 ## Context
 Today, `data.js` models `driveUrl` as a plain string on `Project`, `Product`, and

@@ -1,7 +1,10 @@
 # ADR-0003: Auth.js (NextAuth v5) with Google as the single login + Drive OAuth path
 
 ## Status
-Accepted — 2026-07-28
+**Superseded by ADR-0010 (2026-07-28)** — Google sign-in was removed entirely
+in favor of Credentials-only auth. Kept for historical record; the allow-list
+mechanism (`isEmailAllowed`) this ADR introduced is still live, just no longer
+tied to Google.
 
 ## Context
 Two needs collide: (1) the app needs a login system (today: client-side mock

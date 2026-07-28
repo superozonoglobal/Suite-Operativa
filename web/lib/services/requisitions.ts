@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
 import type { CreateRequisitionInput, RespondRequisitionInput } from "@/lib/validation/requisition";
+import { createNotification } from "@/lib/services/notifications";
 
 export async function listRequisitions(filters: { fromUserId?: string; toUserId?: string } = {}) {
   const where: Prisma.RequisitionWhereInput = {};
@@ -16,14 +17,22 @@ export async function listRequisitions(filters: { fromUserId?: string; toUserId?
 }
 
 export async function createRequisition(input: CreateRequisitionInput, fromUserId: string) {
-  return prisma.requisition.create({
+  const requisition = await prisma.requisition.create({
     data: {
       fromUserId,
       toUserId: input.toUserId,
       title: input.title,
       description: input.description,
     },
+    include: { fromUser: true },
   });
+
+  await createNotification(
+    input.toUserId,
+    `${requisition.fromUser.name} te envió una requisición nueva.`
+  );
+
+  return requisition;
 }
 
 export async function respondToRequisition(
@@ -37,6 +46,8 @@ export async function respondToRequisition(
     throw new Error("Forbidden: only the recipient can respond to this requisition");
   }
 
+  const responder = await prisma.user.findUniqueOrThrow({ where: { id: actingUserId } });
+
   if (input.status === "ACEPTADA") {
     const task = await prisma.task.create({
       data: {
@@ -48,11 +59,15 @@ export async function respondToRequisition(
       },
     });
 
+    await createNotification(requisition.fromUserId, `${responder.name} aceptó tu requisición.`);
+
     return prisma.requisition.update({
       where: { id },
       data: { status: "ACEPTADA", taskId: task.id },
     });
   }
+
+  await createNotification(requisition.fromUserId, `${responder.name} rechazó tu requisición.`);
 
   return prisma.requisition.update({
     where: { id },

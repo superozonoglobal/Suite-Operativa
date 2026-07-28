@@ -1,4 +1,5 @@
 import { ROLES } from "@/lib/constants";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 export function Topbar({ title, roleTag }: { title: string; roleTag?: string | null }) {
   const roleName = ROLES.find((r) => r.id === roleTag)?.name;
@@ -15,13 +16,7 @@ export function Topbar({ title, roleTag }: { title: string; roleTag?: string | n
           </span>
         )}
       </div>
-      <button
-        type="button"
-        aria-label="Notificaciones"
-        className="rounded-full p-2 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]"
-      >
-        🔔
-      </button>
+      <NotificationBell />
     </header>
   );
 }

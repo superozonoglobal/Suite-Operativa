@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { SendMessageInput } from "@/lib/validation/message";
+import { createNotification } from "@/lib/services/notifications";
 
 export async function listThread(userId: string, otherUserId: string) {
   return prisma.message.findMany({
@@ -14,13 +15,18 @@ export async function listThread(userId: string, otherUserId: string) {
 }
 
 export async function sendMessage(input: SendMessageInput, senderId: string) {
-  return prisma.message.create({
+  const message = await prisma.message.create({
     data: {
       senderId,
       recipientId: input.recipientId,
       content: input.content,
     },
+    include: { sender: true },
   });
+
+  await createNotification(input.recipientId, `${message.sender.name} te envió un mensaje.`);
+
+  return message;
 }
 
 export async function markThreadRead(userId: string, otherUserId: string) {

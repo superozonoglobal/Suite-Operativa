@@ -1,4 +1,4 @@
-# Run Log: Suite Operativa — Next.js Full-Stack Rewrite (plan-only)
+# Run Log: Suite Operativa — Next.js Full-Stack Rewrite
 
 **Original request (translated from Spanish):** "Verify the photos in
 `Desktop/modulo de inicio` against the code in
@@ -45,9 +45,39 @@ frozen plan per the user's confirmed answer to the "scope for today" question
       (Pass A found a self-contradictory verification step in Task 0-3; Pass B
       found a shell-quoting bug in Task 0-1's verification command — both fixed
       inline). `.active-plan` deliberately NOT armed (plan-only stop).
-- [ ] Phase 4 — Execution (not run this session — plan-only)
-- [ ] Phase 5 — Code review (not run this session)
-- [ ] Phase 6 — Verify & close (not run this session)
+- [~] Phase 4 — Execution: **Phase 0 and Phase 1 of the plan done** (user asked
+      explicitly to start only these two, in a later same-day session). Phases
+      2-7 of the plan NOT started. Commits: `7f9416e` (Task 0-1, delete
+      superseded backend), `e194bca` (Task 0-2, Next.js 16 + Prisma 7 scaffold),
+      `b12aa56` (Task 0-3, full schema + migration), `cb65ab8` (Task 1-1,
+      Auth.js), `a72def5` (Task 1-2, app shell). No double code review or
+      verify-and-close run yet — deferred until more of the plan is built.
+- [ ] Phase 5 — Code review (not run — only 2 of ~10 plan phases exist so far)
+- [ ] Phase 6 — Verify & close (not run — see above)
+
+## Platform deviations discovered during Phase 0-1 execution (not knowable at
+## plan-writing time, now documented inline in the plan's Global Constraints)
+- `create-next-app@latest` installed **Next.js 16.2.12**, not 15 — `middleware.ts`
+  is renamed to `proxy.ts` (export `proxy`, not `middleware`); Route Handler
+  `params` are now a Promise (`await params`), relevant to every not-yet-written
+  `[id]/route.ts` task in Phases 2+.
+- `npx prisma init` installed **Prisma 7.9.1**, not 5/6 — generator provider is
+  `prisma-client` (not `prisma-client-js`) with a required custom `output` path,
+  and a driver adapter (`@prisma/adapter-pg`) is now REQUIRED for Postgres, not
+  optional. `lib/prisma.ts` and every later `import { PrismaClient / Prisma /
+  User... } from "@prisma/client"` in the plan's not-yet-written tasks must
+  import from `@/app/generated/prisma/client` instead.
+- No Docker installed on this machine — local dev uses the machine's existing
+  native PostgreSQL 18 (scoop-installed) instead of the plan's `docker-compose.yml`
+  (kept in the repo for teammates who do have Docker).
+- Task 1-1's plan-specified smoke test was upgraded: extracted `isEmailAllowed`
+  into `lib/authAllowList.ts` for real unit coverage (6 cases) instead of the
+  weak "module loads" check the plan had flagged as a known limitation.
+- Verified: `npm run build`, `npx tsc --noEmit`, and `npx vitest run` all pass
+  clean after Phase 1. Manual browser verification of the full sidebar (all 12
+  links, active-route highlight) and a real Google sign-in are both blocked on
+  Task 7-1 (Google Cloud OAuth credentials — human-only, not done yet) — noted
+  as an open item, not silently skipped.
 
 ## Known scope cuts (flagged in the plan, not silently dropped)
 - No historical data migration from Google Sheets (ADR-0006, explicit user choice).
@@ -58,12 +88,14 @@ frozen plan per the user's confirmed answer to the "scope for today" question
   detect) — flagged as a Phase-6-equivalent follow-up once MVP modules exist.
 
 ## Next steps
-1. User reviews the spec (`docs/hydraia/specs/2026-07-28-suite-operativa-nextjs-design.md`)
-   and plan (`docs/hydraia/plans/2026-07-28-suite-operativa-nextjs.md`).
-2. When ready to build: arm the plan
-   (`printf '%s\n' "docs/hydraia/plans/2026-07-28-suite-operativa-nextjs.md" > docs/hydraia/.active-plan`)
-   and run Phases 4-6 (execution + double review + verify) in a fresh session,
-   or `/hydraia:resume`.
-3. Task 7-1 (Google Cloud OAuth/Drive/Picker setup) and Task 7-2 (GitHub push +
-   Vercel import + Neon wiring) are human-only and can happen in parallel with
-   early execution phases, not strictly after them.
+1. Continue execution with the plan's Phase 2 (Proyectos, Metas, Calendario
+   Editorial) onward — `docs/hydraia/.active-plan` is already armed, pointing at
+   this plan.
+2. Task 7-1 (Google Cloud OAuth/Drive/Picker setup) unblocks real browser
+   verification of the auth flow and app shell — worth doing early rather than
+   waiting, since Phase 5's Drive integration also depends on it.
+3. Task 7-2 (GitHub push + Vercel import + Neon wiring) can also happen any
+   time — nothing so far depends on it, but the user has already created both
+   the GitHub repo and Vercel team, so it's unblocked whenever desired.
+4. No code review or verify-and-close pass has run yet — worth doing once a
+   larger slice (e.g. through Phase 2 or the MVP) is built, not after every task.

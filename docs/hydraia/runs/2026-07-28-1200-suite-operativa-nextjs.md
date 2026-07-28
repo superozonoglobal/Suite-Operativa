@@ -45,15 +45,39 @@ frozen plan per the user's confirmed answer to the "scope for today" question
       (Pass A found a self-contradictory verification step in Task 0-3; Pass B
       found a shell-quoting bug in Task 0-1's verification command — both fixed
       inline). `.active-plan` deliberately NOT armed (plan-only stop).
-- [~] Phase 4 — Execution: **Phase 0 and Phase 1 of the plan done** (user asked
-      explicitly to start only these two, in a later same-day session). Phases
-      2-7 of the plan NOT started. Commits: `7f9416e` (Task 0-1, delete
-      superseded backend), `e194bca` (Task 0-2, Next.js 16 + Prisma 7 scaffold),
-      `b12aa56` (Task 0-3, full schema + migration), `cb65ab8` (Task 1-1,
-      Auth.js), `a72def5` (Task 1-2, app shell). No double code review or
+- [~] Phase 4 — Execution: **Plan Phases 0, 1, 2, and 3 done** (user drove this
+      incrementally across several same-day turns: "Fase 0 y 1" → hybrid-auth
+      detour (ADR-0008) → level hierarchy restructure (ADR-0009) → "Fase 2" →
+      "Fase 3"). Plan Phases 4-7 NOT started. Commits: `7f9416e`/`e194bca`/
+      `b12aa56`/`cb65ab8`/`a72def5` (Plan Phase 0-1, see above), `51aa3b0`
+      (ADR-0008 hybrid auth), `8fc668b` (ADR-0009 level restructure), `4d442de`
+      (Plan Task 2-1: tasks/kanban/dashboard/mi-tablero), `240c7a8` (Plan Task
+      2-2: Equipo), `2443d1d` (Plan Task 3-1: Proyectos), `0457025` (Plan Task
+      3-2: Metas), `7ed6261` (Plan Task 3-3: Calendario Editorial). 35 tests
+      passing, build/typecheck clean at every commit. No double code review or
       verify-and-close run yet — deferred until more of the plan is built.
-- [ ] Phase 5 — Code review (not run — only 2 of ~10 plan phases exist so far)
+- [ ] Phase 5 — Code review (not run — deferred, see above)
 - [ ] Phase 6 — Verify & close (not run — see above)
+
+## Mid-execution additions beyond the frozen plan (not in the original plan text)
+- **ADR-0008** (hybrid auth): added email/password registration (Auth.js
+  Credentials provider) alongside Google, since Google Cloud OAuth setup
+  (Task 7-1) hadn't happened yet and the user wanted to test the app
+  immediately. Session strategy changed database → jwt (required by Auth.js
+  when Credentials is configured).
+- **ADR-0009** (level hierarchy): restructured `Level` from
+  `{DIRECTOR, LIDER, COLABORADOR}` to `{SUPERUSER, PROJECT_MANAGER, LIDER,
+  COLABORADOR}` per the user's real org structure (they are SUPERUSER/developer;
+  Project Manager is a separate, not-yet-assigned role). Required a real data
+  migration (existing DIRECTOR row → SUPERUSER), done via two hand-written
+  Postgres migrations rather than `prisma migrate dev`'s auto-diff.
+- Plan Tasks 2-1/2-2/3-1/3-2/3-3 executed with the Next.js 16 async-params and
+  Prisma 7 driver-adapter corrections already applied inline (no rediscovery
+  needed — the Global Constraints note from Plan Phase 0-1 covered it).
+- Task 3-3 (Calendario) verified `buildMonthGrid`'s output against
+  `calendario editorial.png` cell-by-cell (July 2026 starting on Wednesday) —
+  an actual regression-style check against the reference screenshot, not just
+  a plausibility read.
 
 ## Platform deviations discovered during Phase 0-1 execution (not knowable at
 ## plan-writing time, now documented inline in the plan's Global Constraints)

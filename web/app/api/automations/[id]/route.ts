@@ -1,0 +1,28 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { setAutomationEnabled } from "@/lib/services/automations";
+import { z } from "zod";
+
+type RouteContext = { params: Promise<{ id: string }> };
+
+const toggleSchema = z.object({ enabled: z.boolean() });
+
+export async function PATCH(req: NextRequest, { params }: RouteContext) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ data: null, meta: {}, errors: [{ message: "Unauthorized" }] }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const body = await req.json();
+  const parsed = toggleSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { data: null, meta: {}, errors: parsed.error.issues.map((i) => ({ message: i.message })) },
+      { status: 400 }
+    );
+  }
+
+  const automation = await setAutomationEnabled(id, parsed.data.enabled);
+  return NextResponse.json({ data: automation, meta: {}, errors: [] });
+}

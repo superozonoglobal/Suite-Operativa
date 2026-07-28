@@ -50,7 +50,7 @@ model VerificationToken {
 // ---- Domain enums (ported 1:1 from Suite_Operativa_Frontend/data.js) ------
 
 enum RoleTag {
-  DIRECTOR
+  DEVELOPER
   VENTAS
   COPYWRITING
   PUBLICISTA

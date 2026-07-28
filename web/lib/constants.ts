@@ -1,5 +1,5 @@
 export const ROLES = [
-  { id: "DIRECTOR", name: "Director / PM", area: "Dirección" },
+  { id: "DEVELOPER", name: "Developer", area: "Producto" },
   { id: "VENTAS", name: "Ventas", area: "Comercial" },
   { id: "COPYWRITING", name: "Copywriting", area: "Creativo" },
   { id: "PUBLICISTA", name: "Publicista", area: "Creativo" },

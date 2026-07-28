@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>repo-scan — PROYECTOS/src (Diego)</title>
+<style>
+  :root{color-scheme:dark;}
+  body{background:#0b0d10;color:#e6e6e6;font-family:-apple-system,Segoe UI,sans-serif;max-width:980px;margin:0 auto;padding:32px 20px 80px;line-height:1.5;}
+  h1{font-size:1.6rem;margin-bottom:4px;}
+  .sub{color:#9aa;margin-bottom:32px;}
+  .module{border:1px solid #2a2f36;border-radius:10px;padding:20px 24px;margin-bottom:22px;background:#12151a;}
+  .module h2{margin:0 0 6px;font-size:1.2rem;}
+  .verdict{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.78rem;font-weight:600;letter-spacing:.02em;margin-left:8px;}
+  .core{background:#173a2b;color:#6fe3a3;}
+  .rebuild{background:#3a2a17;color:#f0b862;}
+  .extract{background:#1a2c3a;color:#7ec8f0;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.9rem;}
+  td,th{border-bottom:1px solid #23272e;padding:6px 8px;text-align:left;}
+  code{background:#1c2026;padding:1px 6px;border-radius:4px;font-size:.85em;}
+  .flag{background:#2a1717;border-left:3px solid #e05a5a;padding:8px 12px;margin:10px 0;border-radius:4px;font-size:.9rem;}
+  ul{margin:8px 0;padding-left:20px;}
+</style>
+</head>
+<body>
+<h1>repo-scan — Documents\PROYECTOS\src</h1>
+<div class="sub">Depth: standard · 3 módulos, 17 archivos ≈ 4.3 MB · escaneado 2026-07-27</div>
+
+<div class="module">
+  <h2>1. Super_Ozono_Backend <span class="verdict core">CORE ASSET</span></h2>
+  <div>Google Apps Script — backend de "Suite Operativa" (Fase 1: Usuarios/login, Roles, Proyectos, Productos, Tareas), sincronizado vía Google Sheets. Sirve a la app ya en línea en <code>superozono.dgazcarate.online</code>.</div>
+  <table>
+    <tr><th>Archivo</th><th>Tamaño</th><th>Rol</th></tr>
+    <tr><td>Code.gs</td><td>16 KB</td><td>Backend completo (auth, CRUD, sesiones)</td></tr>
+    <tr><td>README.md</td><td>7 KB</td><td>Guía de instalación paso a paso</td></tr>
+  </table>
+  <div>Librerías de terceros: ninguna — solo APIs nativas de Apps Script (SpreadsheetApp, CacheService, ContentService).</div>
+  <div>Seguridad: hash SHA-256 con <strong>salt por usuario</strong> (columna <code>Password_Salt</code>) — correcto. Sesión por token temporal (6h) vía CacheService.</div>
+  <div class="flag">⚠ El código referencia un archivo <code>index 2.html</code> ("ver hashPassword() en index 2.html") que no está presente en lo que se compartió — posible archivo faltante o nombre desactualizado en el comentario.</div>
+</div>
+
+<div class="module">
+  <h2>2. Control_Retos_Y_KPIs <span class="verdict core">CORE ASSET</span> <span class="verdict extract">independiente</span></h2>
+  <div>Google Apps Script Web App separada — login propio, Retos/Entregables/Métricas/Usuarios. Proyecto anterior/paralelo a Suite Operativa, no comparte código con los otros dos módulos.</div>
+  <table>
+    <tr><th>Archivo</th><th>Tamaño</th><th>Rol</th></tr>
+    <tr><td>Code.gs</td><td>14 KB</td><td>Backend (auth, CRUD hojas Retos/Entregables/Métricas)</td></tr>
+    <tr><td>index.html</td><td>50 KB</td><td>Frontend servido por el propio Web App</td></tr>
+    <tr><td>README.md</td><td>11 KB</td><td>Guía de instalación paso a paso</td></tr>
+  </table>
+  <div>Librerías de terceros (cargadas por CDN, no vendidas inline): <code>cdn.tailwindcss.com</code>, <code>cdn.jsdelivr.net/npm/chart.js</code> (sin pin de versión).</div>
+  <div class="flag">⚠ Usuario admin sembrado con contraseña por defecto <code>admin/admin123</code> y un <strong>salt global hardcodeado</strong> (<code>SALT = 'CRK_2026_salt_v1'</code>) en <code>Code.gs</code>, en vez de salt por usuario. El README ya indica cambiar la contraseña al entrar — confirmar que se hizo. Tailwind vía CDN además está desaconsejado por sus propios docs para producción (sin purga de CSS, cambia sin aviso).</div>
+</div>
+
+<div class="module">
+  <h2>3. Suite Operativa — frontend <span class="verdict rebuild">REBUILD SUGERIDO</span></h2>
+  <div>Código fuente modular (jsx/js/css) de la misma "Suite Operativa" que consume el backend del módulo 1, más un <code>index.html</code> de <strong>4.05 MB</strong> que es el mismo app ya empaquetado a mano en un solo archivo (necesario porque Apps Script solo puede servir un HTML, no assets separados).</div>
+  <table>
+    <tr><th>Archivo</th><th>Tamaño</th><th>Rol</th></tr>
+    <tr><td>views.jsx</td><td>126 KB / 2672 líneas</td><td>Vistas principales (grueso de la UI)</td></tr>
+    <tr><td>data.js</td><td>36 KB / 926 líneas</td><td>Capa de datos mock, persistida en localStorage</td></tr>
+    <tr><td>app.jsx</td><td>10 KB</td><td>Shell de la app</td></tr>
+    <tr><td>components.jsx</td><td>8 KB</td><td>Componentes compartidos</td></tr>
+    <tr><td>reports.js</td><td>7 KB</td><td>Generación de reportes</td></tr>
+    <tr><td>styles.css</td><td>19 KB</td><td>Estilos</td></tr>
+    <tr><td>icons.jsx</td><td>3 KB</td><td>Set de íconos</td></tr>
+    <tr><td>logo.js</td><td>81 KB</td><td>Logo en base64</td></tr>
+    <tr><td>index.html</td><td>4.05 MB</td><td>Bundle manual de todo lo anterior + libs</td></tr>
+  </table>
+  <div>Confirmado: el contenido de <code>data.js</code> está embebido tal cual dentro de <code>index.html</code> (mismo header), o sea que por ahora están sincronizados.</div>
+  <div>Librerías de terceros <strong>vendidas inline</strong> dentro de <code>index.html</code> (no vía CDN):</div>
+  <ul>
+    <li>React 18.3.1 (production min) — MIT</li>
+    <li>ReactDOM 18.3.1 — MIT</li>
+    <li><strong>Babel Standalone</strong> (transpilador JSX en el navegador, <code>type="text/babel"</code>) — MIT</li>
+    <li>jsPDF (UMD min, para exportar PDF 100% en cliente) — MIT</li>
+  </ul>
+  <div class="flag">⚠ <strong>Principal hallazgo:</strong> Babel Standalone transpila el JSX en cada carga de página en el navegador del usuario — patrón "sin build" que los propios docs de Babel desaconsejan para producción por el costo de performance. Es probablemente la mayor causa de que el archivo pese 4 MB (Babel Standalone solo ya son ~2-3 MB) y de que la carga inicial sea lenta, sobre todo sirviendo desde Apps Script (ya de por sí no es rápido). Reemplazar por un build real (esbuild/Vite) generaría un bundle final de unos cientos de KB, sin transpilar en vivo.</div>
+  <div class="flag">⚠ No hay build tool: mantener <code>index.html</code> (bundle) y los 8 archivos fuente sueltos sincronizados es 100% manual. Cualquier edición futura en uno y no en otro los desalinea sin aviso.</div>
+</div>
+
+<h2 style="margin-top:36px;font-size:1.1rem;">Resumen</h2>
+<ul>
+  <li><strong>3 KB código propio útil</strong> repartido en 2 backends Apps Script + 1 frontend React fuente (~334 KB fuente) — todo legible, sin código muerto detectado.</li>
+  <li><strong>~3.9 MB de los 4.3 MB totales son librerías de terceros vendidas inline</strong> (React + ReactDOM + Babel Standalone + jsPDF) dentro de un solo archivo, la causa principal del peso del proyecto 3.</li>
+  <li>2 riesgos de seguridad menores a revisar: salt global hardcodeado + password admin por defecto en Control_Retos_Y_KPIs; referencia a archivo faltante <code>index 2.html</code> en Super_Ozono_Backend.</li>
+  <li>Los 3 módulos son independientes entre sí salvo 1↔3 (mismo producto, backend + frontend).</li>
+</ul>
+</body>
+</html>

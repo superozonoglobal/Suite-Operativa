@@ -1,0 +1,625 @@
+/* =========================================================================
+   SUPER OZONO — Identidad visual
+   Dirección estética: "capa atmosférica nocturna" — negro verdoso profundo,
+   acento chartreuse eléctrico (ozono), tipografía editorial (Fraunces) +
+   técnica (IBM Plex Sans / Space Mono) para una herramienta operativa que
+   no se siente genérica.
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Poppins:wght@400;900&display=swap');
+
+:root {
+  --bg: #0a0d08;
+  --bg-elevated: #11150d;
+  --surface: #171c12;
+  --surface-hover: #1e2417;
+  --border: #262e1c;
+  --border-soft: #1c2215;
+
+  --accent: #c6ff3d;
+  --accent-dim: #8fb82c;
+  --accent-ink: #10150a;
+  --coral: #ff5c3d;
+  --sky: #5cc9ff;
+  --violet: #c77dff;
+  --amber: #ffd166;
+  --danger: #ff5c5c;
+  --mint: #8fe0a8;
+
+  --text: #f2f4e8;
+  --text-muted: #9aa08c;
+  --text-faint: #656e54;
+
+  --font-display: 'Fraunces', serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 24px 64px -20px rgba(0, 0, 0, 0.75);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+#root { min-height: 100vh; position: relative; }
+
+/* ---- atmósfera de fondo -------------------------------------------------- */
+.ozono-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.ozono-atmosphere::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(198, 255, 61, 0.10), transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(92, 201, 255, 0.08), transparent 45%),
+    radial-gradient(circle at 50% 90%, rgba(255, 92, 61, 0.06), transparent 40%);
+  filter: blur(60px);
+  animation: driftBlob 34s ease-in-out infinite alternate;
+}
+.ozono-atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+@keyframes driftBlob {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(3%, -4%) scale(1.08); }
+}
+
+/* ---- scrollbars ---------------------------------------------------------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* ---- tipografía utilitaria ------------------------------------------------ */
+.font-display { font-family: var(--font-display); }
+.font-mono { font-family: var(--font-mono); letter-spacing: 0.02em; }
+
+/* Wordmark "Super Ozono": Poppins Regular para "Super" + Poppins Black para
+   "Ozono", en vez de la itálica editorial de Fraunces usada en el resto del
+   texto display. */
+.brand-wordmark {
+  font-family: 'Poppins', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.brand-wordmark .wordmark-ozono {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 900;
+}
+
+.label-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ---- layout shell --------------------------------------------------------- */
+.app-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  min-height: 100vh;
+}
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 1fr; }
+}
+
+.sidebar {
+  border-right: 1px solid var(--border-soft);
+  background: linear-gradient(180deg, var(--bg-elevated), var(--bg));
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+@media (max-width: 900px) {
+  .sidebar { position: static; height: auto; }
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+.nav-item:hover { background: var(--surface-hover); color: var(--text); }
+.nav-item.active {
+  background: var(--surface);
+  color: var(--accent);
+  border-color: var(--border);
+}
+.nav-item .nav-icon { width: 16px; text-align: center; opacity: 0.85; }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 28px;
+  background: rgba(10, 13, 8, 0.72);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.main-scroll {
+  min-height: 100vh;
+  padding: 26px 28px 60px;
+}
+
+/* ---- avatar --------------------------------------------------------------- */
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #0a0d08;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--border);
+}
+.avatar.lg { width: 46px; height: 46px; font-size: 14px; }
+.avatar.xs { width: 22px; height: 22px; font-size: 9px; }
+
+/* ---- botones --------------------------------------------------------------- */
+.btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn:hover { background: var(--surface-hover); border-color: var(--text-faint); }
+.btn:active { transform: scale(0.97); }
+.btn-accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.btn-accent:hover { background: #d4ff66; }
+.btn-danger { background: transparent; color: var(--danger); border-color: rgba(255, 92, 92, 0.4); }
+.btn-danger:hover { background: rgba(255, 92, 92, 0.08); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
+.btn-ghost:hover { color: var(--text); background: var(--surface-hover); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ---- cards / superficies ---------------------------------------------------- */
+.surface-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  opacity: 0.12;
+}
+
+/* ---- badges --------------------------------------------------------------- */
+.badge {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.badge-dot { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; }
+
+/* ---- kanban ----------------------------------------------------------------- */
+/* Las 4 columnas (270px c/u mínimo) casi siempre suman más que el ancho
+   disponible junto al panel de Equipo — sin overflow-x explícito, el body
+   (overflow-x: hidden) simplemente recortaba las columnas de más en vez de
+   dejarlas scrollear. Aquí se hace el desplazamiento lateral explícito, con
+   scroll-snap para que cada columna quede bien encuadrada al deslizar. */
+.kanban-scroll {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(270px, 1fr);
+  gap: 16px;
+  align-items: start;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding-bottom: 6px;
+  margin-bottom: -6px;
+}
+.kanban-scroll::-webkit-scrollbar { height: 8px; }
+@media (max-width: 900px) {
+  .kanban-scroll { grid-auto-flow: row; grid-auto-columns: unset; overflow-x: visible; scroll-snap-type: none; }
+}
+
+.kanban-col {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  min-height: 160px;
+  min-width: 0;
+  scroll-snap-align: start;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.kanban-col.drag-over {
+  border-color: var(--accent-dim);
+  background: rgba(198, 255, 61, 0.04);
+}
+
+.task-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 13px 14px;
+  margin-bottom: 10px;
+  cursor: grab;
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.task-card:hover {
+  border-color: var(--text-faint);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-pop);
+}
+.task-card.blocked { opacity: 0.55; cursor: not-allowed; }
+.task-card.dragging { opacity: 0.4; }
+
+/* ---- animaciones de entrada ------------------------------------------------- */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise-in { animation: riseIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.rise-in-1 { animation-delay: 0.02s; }
+.rise-in-2 { animation-delay: 0.07s; }
+.rise-in-3 { animation-delay: 0.12s; }
+.rise-in-4 { animation-delay: 0.17s; }
+
+/* ---- progreso --------------------------------------------------------------- */
+.progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- modal ------------------------------------------------------------------ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 6, 3, 0.72);
+  backdrop-filter: blur(6px);
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+}
+.modal-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 720px;
+  box-shadow: var(--shadow-pop);
+  animation: modalIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---- inputs ------------------------------------------------------------------ */
+.field-input, .field-textarea, .field-select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.field-input:focus, .field-textarea:focus, .field-select:focus { border-color: var(--accent-dim); }
+.field-textarea { resize: vertical; min-height: 70px; }
+.field-label {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* ---- comentarios / chat -------------------------------------------------------- */
+.comment-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+}
+
+/* ---- calendario editorial ------------------------------------------------------- */
+.editorial-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+.cal-day-head {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  text-align: center;
+  padding-bottom: 6px;
+}
+.cal-cell {
+  min-height: 118px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  padding: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.cal-cell.outside { opacity: 0.35; }
+.cal-cell.today { border-color: var(--accent-dim); box-shadow: inset 0 0 0 1px var(--accent-dim); }
+.cal-cell.drag-over { background: rgba(198, 255, 61, 0.06); border-color: var(--accent-dim); }
+.cal-daynum { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+.post-chip {
+  font-size: 11px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: grab;
+  line-height: 1.25;
+}
+
+/* ---- tooltip ligero ---------------------------------------------------------- */
+.hint { color: var(--text-faint); font-size: 12px; }
+
+/* ---- utilidades de layout ------------------------------------------------------ */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ---- logo -------------------------------------------------------------------- */
+.logo-mark { filter: drop-shadow(0 0 10px rgba(198, 255, 61, 0.25)); }
+@keyframes logoPulse {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(198, 255, 61, 0.18)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 16px rgba(198, 255, 61, 0.4)); transform: scale(1.035); }
+}
+.logo-pulse { animation: logoPulse 4.5s ease-in-out infinite; }
+
+/* ---- notificaciones: campana con aviso ------------------------------------------ */
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-12deg); }
+  30% { transform: rotate(9deg); }
+  40% { transform: rotate(-7deg); }
+  50% { transform: rotate(4deg); }
+  60% { transform: rotate(0deg); }
+}
+.bell-ring { animation: bellRing 1.8s cubic-bezier(.36,.07,.19,.97) infinite; transform-origin: top center; }
+
+/* ---- transición de vista al navegar --------------------------------------------- */
+@keyframes viewFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.view-transition { animation: viewFadeIn 0.32s cubic-bezier(.16,1,.3,1) both; }
+
+/* ---- pulso de aprobación (feedback al aprobar una tarea) ------------------------ */
+@keyframes approvePulse {
+  0% { box-shadow: 0 0 0 0 rgba(198, 255, 61, 0.55); }
+  70% { box-shadow: 0 0 0 14px rgba(198, 255, 61, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(198, 255, 61, 0); }
+}
+.approve-pulse { animation: approvePulse 0.9s ease-out; }
+
+/* ---- vista de lista/tabla de tareas (ronda 5) ------------------------------------ */
+.task-list-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.2fr 1fr 0.8fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.task-list-row:last-child { border-bottom: none; }
+.task-list-head {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--bg-elevated);
+}
+.task-list-item { cursor: pointer; transition: background 0.15s ease; }
+.task-list-item:hover { background: var(--surface-hover); }
+@media (max-width: 760px) {
+  .task-list-row { grid-template-columns: 1fr 1fr; row-gap: 4px; }
+  .task-list-head { display: none; }
+}
+
+/* ---- layouts responsivos (ronda 4) ---------------------------------------------- */
+/* Detalle de tarea: descripción/comentarios a la izquierda, panel de estado a la
+   derecha. En pantallas angostas se apilan en una sola columna. */
+.detail-grid {
+  padding: 20px 26px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 760px) {
+  .detail-grid { grid-template-columns: 1fr; padding: 14px 16px; gap: 16px; }
+}
+
+/* Fila de miembro en Equipo: nombre, rol, nivel, teléfono, notificaciones. */
+.team-row-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .team-row-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .team-row-grid { grid-template-columns: 1fr; }
+}
+
+/* Tablero Kanban + panel lateral de Equipo. */
+.kanban-layout {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .kanban-layout { grid-template-columns: 1fr; }
+}
+
+/* Calendario editorial + panel lateral de tareas listas para programar. */
+.cal-layout {
+  display: grid;
+  grid-template-columns: 1fr 250px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .cal-layout { grid-template-columns: 1fr; }
+}
+
+/* Red de seguridad: cualquier grid de 2 columnas fijas inline (formularios,
+   widgets de Dashboard/Analítica, filas de Configuración) se apila en móvil. */
+@media (max-width: 640px) {
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns: 1.3fr 1fr"],
+  [style*="grid-template-columns: 200px 1fr auto"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Calendario: en móvil una cuadrícula de 7 columnas es ilegible — se reduce a
+   una agenda vertical de 1 columna con scroll. */
+@media (max-width: 640px) {
+  .editorial-calendar { grid-template-columns: 1fr; }
+  .cal-day-head { display: none; }
+  .cal-cell.outside { display: none; }
+  .cal-cell { min-height: unset; flex-direction: row; align-items: center; flex-wrap: wrap; }
+}
+
+/* Aire general más angosto en pantallas de teléfono. */
+@media (max-width: 640px) {
+  .main-scroll { padding: 16px 14px 44px; }
+  .topbar { padding: 12px 16px; }
+  .modal-backdrop { padding: 0; align-items: stretch; }
+  .modal-panel { max-width: 100%; border-radius: 0; min-height: 100vh; }
+}
+
+/* ---- indicador activo del nav (barrita lateral animada) ------------------------- */
+.nav-item { position: relative; overflow: hidden; }
+.nav-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 0;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+  transform: translateY(-50%);
+  transition: height 0.22s cubic-bezier(.16,1,.3,1);
+}
+.nav-item.active::before { height: 62%; }

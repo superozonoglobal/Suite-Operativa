@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Gestión, Objetivos y KPIs</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  .tab-btn.active { background:#4F46E5; color:#fff; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:9999px; font-size:12px; font-weight:600; }
+  .badge-pendiente, .badge-en-revision { background:#FEF3C7; color:#92400E; }
+  .badge-en-progreso, .badge-con-cambios { background:#DBEAFE; color:#1E40AF; }
+  .badge-en-pausa { background:#E5E7EB; color:#374151; }
+  .badge-completado, .badge-aprobado { background:#D1FAE5; color:#065F46; }
+  .chart-card { min-height: 300px; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+
+<!-- ==================== PANTALLA DE LOGIN ==================== -->
+<div id="loginScreen" class="hidden fixed inset-0 bg-gray-100 flex items-center justify-center p-4 z-40">
+  <div class="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm">
+    <h1 class="text-xl font-bold text-gray-900 mb-1">Objetivos, Entregables y KPIs</h1>
+    <p class="text-sm text-gray-500 mb-6">Inicia sesión con tu usuario del equipo.</p>
+    <form onsubmit="return hacerLogin(event)">
+      <input type="text" id="loginUsuario" placeholder="Usuario" required autocomplete="username" class="border p-2 rounded w-full text-sm mb-3">
+      <input type="password" id="loginPassword" placeholder="Contraseña" required autocomplete="current-password" class="border p-2 rounded w-full text-sm mb-4">
+      <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition">Entrar</button>
+      <p id="loginError" class="text-sm text-red-600 mt-3"></p>
+    </form>
+    <button onclick="abrirConfig()" class="w-full mt-4 text-xs text-gray-400 hover:text-gray-600">⚙ Configurar conexión con Apps Script</button>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+<div class="max-w-7xl mx-auto p-4 md:p-6">
+
+  <!-- Encabezado -->
+  <header class="mb-6 flex flex-wrap justify-between items-center gap-3 border-b pb-4">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Panel de Objetivos, Entregables y KPIs</h1>
+      <p class="text-sm text-gray-500">Retos/OKRs, piezas gráficas, videos y métricas de rendimiento — conectado a Google Sheets.</p>
+    </div>
+    <div class="flex flex-wrap gap-2 items-center">
+      <span id="saludoUsuario" class="text-sm text-gray-600 mr-1"></span>
+      <button onclick="cargarDatos()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg shadow hover:bg-indigo-700 transition text-sm">Actualizar</button>
+      <button onclick="abrirCambiarPassword()" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg shadow hover:bg-gray-300 transition text-sm">🔑 Contraseña</button>
+      <button onclick="abrirConfig()" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg shadow hover:bg-gray-300 transition text-sm">⚙ API</button>
+      <button onclick="cerrarSesion()" class="bg-gray-800 text-white px-3 py-2 rounded-lg shadow hover:bg-gray-900 transition text-sm">Salir</button>
+    </div>
+  </header>
+
+  <div id="apiWarning" class="hidden mb-4 bg-amber-50 border border-amber-300 text-amber-800 text-sm rounded-lg p-3">
+    No has configurado la URL de tu Apps Script todavía. Haz clic en "⚙ API" para pegarla.
+  </div>
+
+  <!-- Navegación de pestañas -->
+  <nav class="flex gap-2 mb-6 flex-wrap">
+    <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium bg-white border" data-tab="dashboard" onclick="cambiarTab('dashboard')">Dashboard</button>
+    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-white border" data-tab="retos" onclick="cambiarTab('retos')">Retos y Objetivos</button>
+    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-white border" data-tab="entregables" onclick="cambiarTab('entregables')">Entregables</button>
+    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-white border" data-tab="metricas" onclick="cambiarTab('metricas')">Métricas / KPIs</button>
+    <button id="tabBtnUsuarios" class="hidden tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-white border" data-tab="usuarios" onclick="cambiarTab('usuarios')">Usuarios</button>
+  </nav>
+
+  <!-- =================== DASHBOARD =================== -->
+  <section id="tab-dashboard" class="tab-panel">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-xl shadow-sm border"><p class="text-xs text-gray-500">Retos/Objetivos totales</p><p id="kpiRetosTotal" class="text-2xl font-bold text-gray-900">0</p></div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border"><p class="text-xs text-gray-500">Completados</p><p id="kpiRetosCompletados" class="text-2xl font-bold text-emerald-600">0%</p></div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border"><p class="text-xs text-gray-500">Entregables en revisión</p><p id="kpiEntregablesRevision" class="text-2xl font-bold text-amber-600">0</p></div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border"><p class="text-xs text-gray-500">Cumplimiento KPI promedio</p><p id="kpiCumplimientoProm" class="text-2xl font-bold text-indigo-600">0%</p></div>
+    </div>
+
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Retos y objetivos</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-xl shadow-sm border chart-card">
+        <h3 class="font-semibold mb-3 text-gray-700">Retos/Objetivos por Estado</h3>
+        <canvas id="chartRetos"></canvas>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border chart-card">
+        <h3 class="font-semibold mb-3 text-gray-700">Retos/Objetivos por Miembro</h3>
+        <canvas id="chartRetosMiembro"></canvas>
+      </div>
+    </div>
+
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Entregables</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-xl shadow-sm border chart-card">
+        <h3 class="font-semibold mb-3 text-gray-700">Entregables por Estado</h3>
+        <canvas id="chartEntregablesEstado"></canvas>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border chart-card">
+        <h3 class="font-semibold mb-3 text-gray-700">Entregables por Tipo</h3>
+        <canvas id="chartEntregablesTipo"></canvas>
+      </div>
+    </div>
+
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">KPIs de rendimiento</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-xl shadow-sm border chart-card">
+        <h3 class="font-semibold mb-3 text-gray-700">Cumplimiento (%) por Miembro</h3>
+        <canvas id="chartKpi"></canvas>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border chart-card">
+        <h3 class="font-semibold mb-3 text-gray-700">Meta vs. Resultado por KPI</h3>
+        <canvas id="chartMetaVsReal"></canvas>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border chart-card md:col-span-2">
+        <h3 class="font-semibold mb-3 text-gray-700">Evolución del cumplimiento en el tiempo</h3>
+        <canvas id="chartEvolucion"></canvas>
+      </div>
+      <div id="cardCumplArea" class="hidden bg-white p-6 rounded-xl shadow-sm border chart-card md:col-span-2">
+        <h3 class="font-semibold mb-3 text-gray-700">Cumplimiento promedio por Área (Diseño / Video / Estrategia)</h3>
+        <canvas id="chartArea"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== RETOS Y OBJETIVOS =================== -->
+  <section id="tab-retos" class="tab-panel hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-xl shadow-sm border lg:col-span-1 h-fit">
+        <h2 id="formRetoTitulo" class="text-lg font-semibold mb-4">Registrar Reto / Objetivo</h2>
+        <form id="formReto" onsubmit="return guardarReto(event)">
+          <input type="hidden" name="ID_Reto">
+          <input type="text" name="Miembro" placeholder="Nombre del miembro" required class="border p-2 rounded w-full text-sm mb-3">
+          <select name="Tipo" class="border p-2 rounded w-full text-sm mb-3">
+            <option value="Diario">Diario</option>
+            <option value="Semanal">Semanal</option>
+            <option value="Mensual">Mensual</option>
+            <option value="Trimestral">Trimestral (Objetivo/OKR)</option>
+          </select>
+          <textarea name="Descripcion" placeholder="Objetivo o descripción del reto..." required class="border p-2 rounded w-full text-sm mb-3"></textarea>
+          <input type="text" name="KPI_Asociado" list="kpiSuggestions" placeholder="Indicador / KPI asociado" required class="border p-2 rounded w-full text-sm mb-3">
+          <input type="text" name="Meta_Numerica" placeholder="Meta numérica (Ej: 90% de aceptación)" class="border p-2 rounded w-full text-sm mb-3">
+          <textarea name="Tareas_Clave" placeholder="Tareas clave semanales (una por línea)&#10;1. ...&#10;2. ...&#10;3. ..." rows="3" class="border p-2 rounded w-full text-sm mb-3"></textarea>
+          <select name="Estado" class="border p-2 rounded w-full text-sm mb-4">
+            <option value="Pendiente">🟡 Pendiente</option>
+            <option value="En Progreso">🟢 En Progreso</option>
+            <option value="En Pausa">⏸ En Pausa</option>
+            <option value="Completado">✅ Completado</option>
+          </select>
+          <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700 transition">Guardar</button>
+          <button type="button" onclick="cancelarEdicionReto()" id="btnCancelarReto" class="hidden w-full mt-2 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition">Cancelar edición</button>
+        </form>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border lg:col-span-2">
+        <div class="flex flex-wrap gap-2 mb-4">
+          <input type="text" id="filtroRetoMiembro" placeholder="Filtrar por miembro..." class="border p-2 rounded text-sm flex-1 min-w-[150px]" oninput="renderRetos()">
+          <select id="filtroRetoTipo" class="border p-2 rounded text-sm" onchange="renderRetos()">
+            <option value="">Todos los tipos</option>
+            <option value="Diario">Diario</option>
+            <option value="Semanal">Semanal</option>
+            <option value="Mensual">Mensual</option>
+            <option value="Trimestral">Trimestral</option>
+          </select>
+          <select id="filtroRetoEstado" class="border p-2 rounded text-sm" onchange="renderRetos()">
+            <option value="">Todos los estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En Progreso">En Progreso</option>
+            <option value="En Pausa">En Pausa</option>
+            <option value="Completado">Completado</option>
+          </select>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead class="border-b bg-gray-100 font-medium text-gray-700">
+              <tr><th class="p-2">Miembro</th><th class="p-2">Tipo</th><th class="p-2">Objetivo / Descripción</th><th class="p-2">KPI</th><th class="p-2">Meta</th><th class="p-2">Tareas clave</th><th class="p-2">Estado</th><th class="p-2">Acciones</th></tr>
+            </thead>
+            <tbody id="tablaRetosBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== ENTREGABLES =================== -->
+  <section id="tab-entregables" class="tab-panel hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-xl shadow-sm border lg:col-span-1 h-fit">
+        <h2 id="formEntregableTitulo" class="text-lg font-semibold mb-4">Registrar Entregable</h2>
+        <form id="formEntregable" onsubmit="return guardarEntregable(event)">
+          <input type="hidden" name="ID_Entregable">
+          <input type="text" name="Miembro" placeholder="Creador / miembro" required class="border p-2 rounded w-full text-sm mb-3">
+          <select name="Tipo" class="border p-2 rounded w-full text-sm mb-3">
+            <option value="Pieza Gráfica">Pieza Gráfica</option>
+            <option value="Video">Video</option>
+          </select>
+          <input type="text" name="Titulo" placeholder="Título del proyecto" required class="border p-2 rounded w-full text-sm mb-3">
+          <input type="url" name="Link_Drive" placeholder="Enlace de Google Drive" required class="border p-2 rounded w-full text-sm mb-3">
+          <select name="Estado" id="entregableEstadoSelect" class="border p-2 rounded w-full text-sm mb-3">
+            <option value="En Revisión">En Revisión</option>
+            <option value="Aprobado">Aprobado</option>
+            <option value="Con Cambios">Con Cambios</option>
+          </select>
+          <p id="entregableEstadoNota" class="hidden text-xs text-gray-400 -mt-2 mb-3">Solo un administrador puede aprobar o pedir cambios.</p>
+          <textarea name="Observaciones" placeholder="Observaciones (opcional)" class="border p-2 rounded w-full text-sm mb-4"></textarea>
+          <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition">Guardar Entregable</button>
+          <button type="button" onclick="cancelarEdicionEntregable()" id="btnCancelarEntregable" class="hidden w-full mt-2 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition">Cancelar edición</button>
+        </form>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border lg:col-span-2">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead class="border-b bg-gray-100 font-medium text-gray-700">
+              <tr><th class="p-2">Miembro</th><th class="p-2">Tipo</th><th class="p-2">Título</th><th class="p-2">Enlace</th><th class="p-2">Estado</th><th class="p-2">Acciones</th></tr>
+            </thead>
+            <tbody id="tablaEntregablesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== METRICAS / KPIs =================== -->
+  <section id="tab-metricas" class="tab-panel hidden">
+    <datalist id="kpiSuggestions">
+      <option value="ROMI (Retorno de Inversión Creativa)">
+      <option value="Tasa de Conversión (CR)">
+      <option value="Engagement Rate">
+      <option value="On-Time Delivery">
+      <option value="Tasa de aceptación a la primera">
+      <option value="Brand Compliance (Consistencia de Marca)">
+      <option value="Piezas gráficas entregadas por semana">
+      <option value="Video Retention 5s">
+      <option value="Video Retention 50%">
+      <option value="Piezas editadas por mes">
+      <option value="Tiempo promedio de entrega (días)">
+      <option value="Costo por Click (CPC)">
+      <option value="Costo por Adquisición (CPA)">
+      <option value="Campañas lanzadas por trimestre">
+      <option value="A/B tests ejecutados por mes">
+    </datalist>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-xl shadow-sm border lg:col-span-1 h-fit">
+        <h2 id="formMetricaTitulo" class="text-lg font-semibold mb-4">Registrar Métrica / KPI</h2>
+        <form id="formMetrica" onsubmit="return guardarMetrica(event)">
+          <input type="hidden" name="ID_Metrica">
+          <input type="text" name="Miembro" placeholder="Miembro" required class="border p-2 rounded w-full text-sm mb-3">
+          <input type="text" name="Metrica" list="kpiSuggestions" placeholder="KPI (Ej: ROMI, Engagement Rate...)" required class="border p-2 rounded w-full text-sm mb-3">
+          <input type="number" step="any" name="Valor_Esperado" placeholder="Valor esperado" required class="border p-2 rounded w-full text-sm mb-3">
+          <input type="number" step="any" name="Valor_Real" placeholder="Valor real" required class="border p-2 rounded w-full text-sm mb-4">
+          <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700 transition">Guardar Métrica</button>
+          <button type="button" onclick="cancelarEdicionMetrica()" id="btnCancelarMetrica" class="hidden w-full mt-2 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition">Cancelar edición</button>
+        </form>
+        <div class="mt-5 pt-4 border-t text-xs text-gray-500">
+          <p class="font-semibold mb-1">KPIs de equipo sugeridos:</p>
+          <p>ROMI, Tasa de Conversión (CR), Engagement Rate, On-Time Delivery.</p>
+          <p class="font-semibold mt-2 mb-1">Según tu área:</p>
+          <p>Diseño: aceptación a la primera, Brand Compliance. Video: retención 5s/50%, piezas por mes. Estrategia: CPC, CPA, campañas por trimestre.</p>
+        </div>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border lg:col-span-2">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead class="border-b bg-gray-100 font-medium text-gray-700">
+              <tr><th class="p-2">Miembro</th><th class="p-2">KPI</th><th class="p-2">Esperado</th><th class="p-2">Real</th><th class="p-2">Cumplimiento</th><th class="p-2">Acciones</th></tr>
+            </thead>
+            <tbody id="tablaMetricasBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== USUARIOS (solo admin) =================== -->
+  <section id="tab-usuarios" class="tab-panel hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white p-6 rounded-xl shadow-sm border lg:col-span-1 h-fit">
+        <h2 id="formUsuarioTitulo" class="text-lg font-semibold mb-4">Crear Usuario</h2>
+        <form id="formUsuario" onsubmit="return guardarUsuario(event)">
+          <input type="hidden" name="ID_Usuario">
+          <input type="text" name="Nombre" placeholder="Nombre completo (así aparecerá en Retos/Entregables)" required class="border p-2 rounded w-full text-sm mb-3">
+          <input type="text" name="Usuario" placeholder="Usuario de acceso" required class="border p-2 rounded w-full text-sm mb-3">
+          <input type="password" name="Password" id="usuarioPasswordInput" placeholder="Contraseña" class="border p-2 rounded w-full text-sm mb-1">
+          <p id="usuarioPasswordNota" class="hidden text-xs text-gray-400 mb-3">Deja en blanco para no cambiar la contraseña.</p>
+          <select name="Rol" class="border p-2 rounded w-full text-sm mb-3">
+            <option value="miembro">Miembro</option>
+            <option value="admin">Administrador</option>
+          </select>
+          <select name="Area" class="border p-2 rounded w-full text-sm mb-3">
+            <option value="Diseño">Diseño</option>
+            <option value="Video">Video / Producción Audiovisual</option>
+            <option value="Estrategia">Estrategia y Marketing</option>
+            <option value="Dirección">Dirección</option>
+            <option value="Otro">Otro</option>
+          </select>
+          <label class="flex items-center gap-2 text-sm mb-4">
+            <input type="checkbox" name="Activo" checked> Usuario activo
+          </label>
+          <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition">Guardar Usuario</button>
+          <button type="button" onclick="cancelarEdicionUsuario()" id="btnCancelarUsuario" class="hidden w-full mt-2 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition">Cancelar edición</button>
+        </form>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border lg:col-span-2">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead class="border-b bg-gray-100 font-medium text-gray-700">
+              <tr><th class="p-2">Nombre</th><th class="p-2">Usuario</th><th class="p-2">Rol</th><th class="p-2">Área</th><th class="p-2">Activo</th><th class="p-2">Acciones</th></tr>
+            </thead>
+            <tbody id="tablaUsuariosBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<!-- Modal de configuración de la API -->
+<div id="configModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg">
+    <h3 class="text-lg font-semibold mb-2">Conexión con Google Apps Script</h3>
+    <p class="text-sm text-gray-500 mb-4">Pega aquí la URL de tu aplicación web de Apps Script (ver README.md).</p>
+    <input type="url" id="inputApiUrl" placeholder="https://script.google.com/macros/s/XXXXX/exec" class="border p-2 rounded w-full text-sm mb-3">
+    <p id="configStatus" class="text-sm mb-3"></p>
+    <div class="flex gap-2 justify-end flex-wrap">
+      <button onclick="probarConexion()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-300">Probar conexión</button>
+      <button onclick="guardarConfig()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">Guardar</button>
+      <button onclick="cerrarConfig()" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de cambio de contraseña propia -->
+<div id="passwordModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
+    <h3 class="text-lg font-semibold mb-4">Cambiar mi contraseña</h3>
+    <input type="password" id="nuevaPassword1" placeholder="Nueva contraseña" class="border p-2 rounded w-full text-sm mb-3">
+    <input type="password" id="nuevaPassword2" placeholder="Repite la nueva contraseña" class="border p-2 rounded w-full text-sm mb-3">
+    <p id="passwordStatus" class="text-sm mb-3"></p>
+    <div class="flex gap-2 justify-end">
+      <button onclick="guardarNuevaPassword()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">Guardar</button>
+      <button onclick="cerrarCambiarPassword()" class="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-200">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Si ya desplegaste tu Apps Script, pega la URL aquí para que tu equipo
+// no tenga que configurarla manualmente en cada computadora.
+const DEFAULT_API_URL = '';
+
+// ==================== ESTADO GLOBAL ====================
+let API_URL = localStorage.getItem('apiUrl') || DEFAULT_API_URL;
+let AUTH_TOKEN = localStorage.getItem('authToken') || '';
+let AUTH_USER = JSON.parse(localStorage.getItem('authUser') || 'null');
+let DATA = { Retos: [], Entregables: [], Metricas: [], Usuarios: [] };
+let CHARTS = {};
+
+function esAdmin() { return AUTH_USER && AUTH_USER.rol === 'admin'; }
+
+// ==================== CONFIGURACIÓN DE API ====================
+function abrirConfig() {
+  document.getElementById('inputApiUrl').value = API_URL;
+  document.getElementById('configStatus').textContent = '';
+  document.getElementById('configModal').classList.remove('hidden');
+}
+function cerrarConfig() { document.getElementById('configModal').classList.add('hidden'); }
+function guardarConfig() {
+  const url = document.getElementById('inputApiUrl').value.trim();
+  API_URL = url;
+  localStorage.setItem('apiUrl', url);
+  cerrarConfig();
+  document.getElementById('apiWarning').classList.toggle('hidden', !!url);
+}
+async function probarConexion() {
+  const url = document.getElementById('inputApiUrl').value.trim();
+  const status = document.getElementById('configStatus');
+  status.textContent = 'Probando...';
+  status.className = 'text-sm mb-3 text-gray-500';
+  try {
+    await fetch(url + '?action=getData&token=test');
+    status.textContent = '✓ El servidor respondió correctamente';
+    status.className = 'text-sm mb-3 text-emerald-600';
+  } catch (err) {
+    status.textContent = '✗ No se pudo conectar: ' + err.message;
+    status.className = 'text-sm mb-3 text-red-600';
+  }
+}
+
+// ==================== LOGIN / SESIÓN ====================
+async function hacerLogin(event) {
+  event.preventDefault();
+  const errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+  if (!API_URL) { errorEl.textContent = 'Primero configura la URL de la API (botón de abajo).'; return false; }
+  const usuario = document.getElementById('loginUsuario').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'login', usuario, password })
+    });
+    const json = await res.json();
+    if (json.status !== 'OK') { errorEl.textContent = json.message || 'No se pudo iniciar sesión'; return false; }
+    AUTH_TOKEN = json.token;
+    AUTH_USER = json.user;
+    localStorage.setItem('authToken', AUTH_TOKEN);
+    localStorage.setItem('authUser', JSON.stringify(AUTH_USER));
+    mostrarApp();
+    cargarDatos();
+  } catch (err) {
+    errorEl.textContent = 'Error de conexión: ' + err.message;
+  }
+  return false;
+}
+
+async function cerrarSesion() {
+  try { await llamarAPI({ action: 'logout' }); } catch (e) {}
+  AUTH_TOKEN = ''; AUTH_USER = null;
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('authUser');
+  mostrarLogin();
+}
+
+function mostrarApp() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('saludoUsuario').textContent = 'Hola, ' + AUTH_USER.nombre + (esAdmin() ? ' (admin)' : '');
+  document.getElementById('tabBtnUsuarios').classList.toggle('hidden', !esAdmin());
+  document.getElementById('cardCumplArea').classList.toggle('hidden', !esAdmin());
+  ['formReto', 'formEntregable', 'formMetrica'].forEach(id => {
+    const f = document.getElementById(id);
+    if (!esAdmin()) { f.Miembro.value = AUTH_USER.nombre; f.Miembro.readOnly = true; f.Miembro.classList.add('bg-gray-100'); }
+    else { f.Miembro.readOnly = false; f.Miembro.classList.remove('bg-gray-100'); }
+  });
+  document.getElementById('entregableEstadoSelect').classList.toggle('hidden', !esAdmin());
+  document.getElementById('entregableEstadoNota').classList.toggle('hidden', esAdmin());
+}
+function mostrarLogin() {
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginPassword').value = '';
+}
+
+// ==================== CAMBIAR MI CONTRASEÑA ====================
+function abrirCambiarPassword() {
+  document.getElementById('nuevaPassword1').value = '';
+  document.getElementById('nuevaPassword2').value = '';
+  document.getElementById('passwordStatus').textContent = '';
+  document.getElementById('passwordModal').classList.remove('hidden');
+}
+function cerrarCambiarPassword() { document.getElementById('passwordModal').classList.add('hidden'); }
+async function guardarNuevaPassword() {
+  const p1 = document.getElementById('nuevaPassword1').value;
+  const p2 = document.getElementById('nuevaPassword2').value;
+  const status = document.getElementById('passwordStatus');
+  if (p1.length < 4) { status.textContent = 'Mínimo 4 caracteres'; status.className = 'text-sm mb-3 text-red-600'; return; }
+  if (p1 !== p2) { status.textContent = 'Las contraseñas no coinciden'; status.className = 'text-sm mb-3 text-red-600'; return; }
+  const result = await llamarAPI({ action: 'changePassword', newPassword: p1 });
+  if (result && result.status === 'OK') { status.textContent = '✓ Actualizada'; status.className = 'text-sm mb-3 text-emerald-600'; setTimeout(cerrarCambiarPassword, 800); }
+  else { status.textContent = result ? result.message : 'Error'; status.className = 'text-sm mb-3 text-red-600'; }
+}
+
+// ==================== NAVEGACIÓN DE PESTAÑAS ====================
+function cambiarTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById('tab-' + tab).classList.remove('hidden');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+}
+
+// ==================== CARGA DE DATOS ====================
+async function cargarDatos() {
+  const warning = document.getElementById('apiWarning');
+  if (!API_URL) { warning.classList.remove('hidden'); return; }
+  warning.classList.add('hidden');
+  try {
+    const res = await fetch(API_URL + '?action=getData&token=' + encodeURIComponent(AUTH_TOKEN));
+    const json = await res.json();
+    if (json.status !== 'OK') {
+      if ((json.message || '').includes('Sesión')) { cerrarSesion(); return; }
+      throw new Error(json.message);
+    }
+    DATA = json.data;
+    renderRetos();
+    renderEntregables();
+    renderMetricas();
+    renderDashboard();
+    if (esAdmin()) renderUsuarios();
+  } catch (err) {
+    console.error('Error al cargar datos:', err);
+    alert('No se pudieron cargar los datos: ' + err.message);
+  }
+}
+
+// Envía una acción al backend. Incluye el token de sesión automáticamente.
+// Content-Type text/plain evita el preflight CORS de Apps Script.
+async function llamarAPI(payload) {
+  if (!API_URL) { alert('Configura primero la URL de la API.'); return null; }
+  payload.token = AUTH_TOKEN;
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  const json = await res.json();
+  if (json && json.status === 'Error' && (json.message || '').includes('Sesión')) { cerrarSesion(); }
+  return json;
+}
+
+// ==================== RETOS Y OBJETIVOS ====================
+function renderRetos() {
+  const tbody = document.getElementById('tablaRetosBody');
+  const filtroMiembro = (document.getElementById('filtroRetoMiembro').value || '').toLowerCase();
+  const filtroTipo = document.getElementById('filtroRetoTipo').value;
+  const filtroEstado = document.getElementById('filtroRetoEstado').value;
+  tbody.innerHTML = '';
+  DATA.Retos
+    .filter(r => (!filtroMiembro || (r.Miembro || '').toLowerCase().includes(filtroMiembro)) && (!filtroTipo || r.Tipo === filtroTipo) && (!filtroEstado || r.Estado === filtroEstado))
+    .forEach(r => {
+      const tr = document.createElement('tr');
+      tr.className = 'border-b align-top';
+      const badgeClass = 'badge-' + (r.Estado || '').toLowerCase().replace(/\s+/g, '-');
+      tr.innerHTML = `<td class="p-2">${esc(r.Miembro)}</td><td class="p-2">${esc(r.Tipo)}</td><td class="p-2 max-w-[220px]">${esc(r.Descripcion)}</td><td class="p-2">${esc(r.KPI_Asociado)}</td><td class="p-2">${esc(r.Meta_Numerica)}</td><td class="p-2 max-w-[200px] whitespace-pre-line text-xs">${esc(r.Tareas_Clave)}</td>
+        <td class="p-2"><span class="badge ${badgeClass}">${esc(r.Estado)}</span></td>
+        <td class="p-2 whitespace-nowrap"><button class="text-indigo-600 hover:underline text-xs mr-2" onclick='editarReto(${JSON.stringify(r.ID_Reto)})'>Editar</button>${esAdmin() ? `<button class="text-red-600 hover:underline text-xs" onclick='eliminarReto(${JSON.stringify(r.ID_Reto)})'>Eliminar</button>` : ''}</td>`;
+      tbody.appendChild(tr);
+    });
+}
+
+async function guardarReto(event) {
+  event.preventDefault();
+  const form = event.target;
+  const fd = new FormData(form);
+  const editingId = fd.get('ID_Reto');
+  const data = { Miembro: fd.get('Miembro'), Tipo: fd.get('Tipo'), Descripcion: fd.get('Descripcion'), Estado: fd.get('Estado'), KPI_Asociado: fd.get('KPI_Asociado'), Meta_Numerica: fd.get('Meta_Numerica') || '', Tareas_Clave: fd.get('Tareas_Clave') || '' };
+  const result = await llamarAPI({ action: editingId ? 'update' : 'create', sheet: 'Retos', id: editingId, data });
+  if (result && result.status === 'OK') { form.reset(); cancelarEdicionReto(); cargarDatos(); }
+  else alert('Error al guardar: ' + (result ? result.message : 'sin respuesta'));
+  return false;
+}
+
+function editarReto(id) {
+  const r = DATA.Retos.find(x => x.ID_Reto === id);
+  if (!r) return;
+  const form = document.getElementById('formReto');
+  form.ID_Reto.value = r.ID_Reto;
+  form.Miembro.value = r.Miembro;
+  form.Tipo.value = r.Tipo;
+  form.Descripcion.value = r.Descripcion;
+  form.KPI_Asociado.value = r.KPI_Asociado;
+  form.Meta_Numerica.value = r.Meta_Numerica || '';
+  form.Tareas_Clave.value = r.Tareas_Clave || '';
+  form.Estado.value = r.Estado;
+  document.getElementById('formRetoTitulo').textContent = 'Editar Reto / Objetivo';
+  document.getElementById('btnCancelarReto').classList.remove('hidden');
+  cambiarTab('retos');
+}
+function cancelarEdicionReto() {
+  const form = document.getElementById('formReto');
+  form.reset();
+  form.ID_Reto.value = '';
+  if (!esAdmin()) form.Miembro.value = AUTH_USER.nombre;
+  document.getElementById('formRetoTitulo').textContent = 'Registrar Reto / Objetivo';
+  document.getElementById('btnCancelarReto').classList.add('hidden');
+}
+async function eliminarReto(id) {
+  if (!confirm('¿Eliminar este reto/objetivo?')) return;
+  const result = await llamarAPI({ action: 'delete', sheet: 'Retos', id: id });
+  if (result && result.status === 'OK') cargarDatos();
+  else alert('Error al eliminar: ' + (result ? result.message : 'sin respuesta'));
+}
+
+// ==================== ENTREGABLES ====================
+function renderEntregables() {
+  const tbody = document.getElementById('tablaEntregablesBody');
+  tbody.innerHTML = '';
+  DATA.Entregables.forEach(en => {
+    const tr = document.createElement('tr');
+    tr.className = 'border-b';
+    const badgeClass = 'badge-' + (en.Estado || '').toLowerCase().replace(/\s+/g, '-');
+    let estadoCelda;
+    if (esAdmin()) {
+      estadoCelda = `<select onchange="cambiarEstadoEntregable(${JSON.stringify(en.ID_Entregable)}, this.value)" class="border rounded text-xs p-1">
+        <option value="En Revisión" ${en.Estado === 'En Revisión' ? 'selected' : ''}>En Revisión</option>
+        <option value="Aprobado" ${en.Estado === 'Aprobado' ? 'selected' : ''}>Aprobado</option>
+        <option value="Con Cambios" ${en.Estado === 'Con Cambios' ? 'selected' : ''}>Con Cambios</option>
+      </select>`;
+    } else {
+      estadoCelda = `<span class="badge ${badgeClass}">${esc(en.Estado)}</span>`;
+    }
+    tr.innerHTML = `<td class="p-2">${esc(en.Miembro)}</td><td class="p-2">${esc(en.Tipo)}</td><td class="p-2">${esc(en.Titulo)}</td>
+      <td class="p-2"><a href="${esc(en.Link_Drive)}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline">Ver archivo ↗</a></td>
+      <td class="p-2">${estadoCelda}</td>
+      <td class="p-2 whitespace-nowrap"><button class="text-indigo-600 hover:underline text-xs mr-2" onclick='editarEntregable(${JSON.stringify(en.ID_Entregable)})'>Editar</button>${esAdmin() ? `<button class="text-red-600 hover:underline text-xs" onclick='eliminarEntregable(${JSON.stringify(en.ID_Entregable)})'>Eliminar</button>` : ''}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function cambiarEstadoEntregable(id, nuevoEstado) {
+  const result = await llamarAPI({ action: 'update', sheet: 'Entregables', id: id, data: { Estado: nuevoEstado } });
+  if (result && result.status === 'OK') cargarDatos();
+  else alert('Error al actualizar estado: ' + (result ? result.message : 'sin respuesta'));
+}
+
+async function guardarEntregable(event) {
+  event.preventDefault();
+  const form = event.target;
+  const fd = new FormData(form);
+  const editingId = fd.get('ID_Entregable');
+  const data = { Miembro: fd.get('Miembro'), Tipo: fd.get('Tipo'), Titulo: fd.get('Titulo'), Link_Drive: fd.get('Link_Drive'), Observaciones: fd.get('Observaciones') || '' };
+  if (esAdmin()) data.Estado = fd.get('Estado');
+  const result = await llamarAPI({ action: editingId ? 'update' : 'create', sheet: 'Entregables', id: editingId, data });
+  if (result && result.status === 'OK') { form.reset(); cancelarEdicionEntregable(); cargarDatos(); }
+  else alert('Error al guardar: ' + (result ? result.message : 'sin respuesta'));
+  return false;
+}
+
+function editarEntregable(id) {
+  const en = DATA.Entregables.find(x => x.ID_Entregable === id);
+  if (!en) return;
+  const form = document.getElementById('formEntregable');
+  form.ID_Entregable.value = en.ID_Entregable;
+  form.Miembro.value = en.Miembro;
+  form.Tipo.value = en.Tipo;
+  form.Titulo.value = en.Titulo;
+  form.Link_Drive.value = en.Link_Drive;
+  form.Estado.value = en.Estado;
+  form.Observaciones.value = en.Observaciones || '';
+  document.getElementById('formEntregableTitulo').textContent = 'Editar Entregable';
+  document.getElementById('btnCancelarEntregable').classList.remove('hidden');
+  cambiarTab('entregables');
+}
+function cancelarEdicionEntregable() {
+  const form = document.getElementById('formEntregable');
+  form.reset();
+  form.ID_Entregable.value = '';
+  if (!esAdmin()) form.Miembro.value = AUTH_USER.nombre;
+  document.getElementById('formEntregableTitulo').textContent = 'Registrar Entregable';
+  document.getElementById('btnCancelarEntregable').classList.add('hidden');
+}
+async function eliminarEntregable(id) {
+  if (!confirm('¿Eliminar este entregable?')) return;
+  const result = await llamarAPI({ action: 'delete', sheet: 'Entregables', id: id });
+  if (result && result.status === 'OK') cargarDatos();
+  else alert('Error al eliminar: ' + (result ? result.message : 'sin respuesta'));
+}
+
+// ==================== METRICAS / KPIs ====================
+function renderMetricas() {
+  const tbody = document.getElementById('tablaMetricasBody');
+  tbody.innerHTML = '';
+  DATA.Metricas.forEach(m => {
+    const tr = document.createElement('tr');
+    tr.className = 'border-b';
+    tr.innerHTML = `<td class="p-2">${esc(m.Miembro)}</td><td class="p-2">${esc(m.Metrica)}</td><td class="p-2">${esc(m.Valor_Esperado)}</td><td class="p-2">${esc(m.Valor_Real)}</td>
+      <td class="p-2 font-semibold">${esc(m.Cumplimiento_Porcentaje)}%</td>
+      <td class="p-2 whitespace-nowrap"><button class="text-indigo-600 hover:underline text-xs mr-2" onclick='editarMetrica(${JSON.stringify(m.ID_Metrica)})'>Editar</button>${esAdmin() ? `<button class="text-red-600 hover:underline text-xs" onclick='eliminarMetrica(${JSON.stringify(m.ID_Metrica)})'>Eliminar</button>` : ''}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function guardarMetrica(event) {
+  event.preventDefault();
+  const form = event.target;
+  const fd = new FormData(form);
+  const editingId = fd.get('ID_Metrica');
+  const esperado = parseFloat(fd.get('Valor_Esperado'));
+  const real = parseFloat(fd.get('Valor_Real'));
+  const cumplimiento = esperado ? ((real / esperado) * 100).toFixed(1) : '0';
+  const data = { Miembro: fd.get('Miembro'), Metrica: fd.get('Metrica'), Valor_Esperado: esperado, Valor_Real: real, Cumplimiento_Porcentaje: cumplimiento };
+  const result = await llamarAPI({ action: editingId ? 'update' : 'create', sheet: 'Metricas', id: editingId, data });
+  if (result && result.status === 'OK') { form.reset(); cancelarEdicionMetrica(); cargarDatos(); }
+  else alert('Error al guardar: ' + (result ? result.message : 'sin respuesta'));
+  return false;
+}
+
+function editarMetrica(id) {
+  const m = DATA.Metricas.find(x => x.ID_Metrica === id);
+  if (!m) return;
+  const form = document.getElementById('formMetrica');
+  form.ID_Metrica.value = m.ID_Metrica;
+  form.Miembro.value = m.Miembro;
+  form.Metrica.value = m.Metrica;
+  form.Valor_Esperado.value = m.Valor_Esperado;
+  form.Valor_Real.value = m.Valor_Real;
+  document.getElementById('formMetricaTitulo').textContent = 'Editar Métrica';
+  document.getElementById('btnCancelarMetrica').classList.remove('hidden');
+  cambiarTab('metricas');
+}
+function cancelarEdicionMetrica() {
+  const form = document.getElementById('formMetrica');
+  form.reset();
+  form.ID_Metrica.value = '';
+  if (!esAdmin()) form.Miembro.value = AUTH_USER.nombre;
+  document.getElementById('formMetricaTitulo').textContent = 'Registrar Métrica / KPI';
+  document.getElementById('btnCancelarMetrica').classList.add('hidden');
+}
+async function eliminarMetrica(id) {
+  if (!confirm('¿Eliminar esta métrica?')) return;
+  const result = await llamarAPI({ action: 'delete', sheet: 'Metricas', id: id });
+  if (result && result.status === 'OK') cargarDatos();
+  else alert('Error al eliminar: ' + (result ? result.message : 'sin respuesta'));
+}
+
+// ==================== USUARIOS (solo admin) ====================
+function renderUsuarios() {
+  const tbody = document.getElementById('tablaUsuariosBody');
+  tbody.innerHTML = '';
+  (DATA.Usuarios || []).forEach(u => {
+    const tr = document.createElement('tr');
+    tr.className = 'border-b';
+    const activo = (u.Activo === true || String(u.Activo).toUpperCase() === 'TRUE');
+    tr.innerHTML = `<td class="p-2">${esc(u.Nombre)}</td><td class="p-2">${esc(u.Usuario)}</td><td class="p-2">${esc(u.Rol)}</td><td class="p-2">${esc(u.Area)}</td>
+      <td class="p-2">${activo ? '✓' : '✗'}</td>
+      <td class="p-2 whitespace-nowrap"><button class="text-indigo-600 hover:underline text-xs mr-2" onclick='editarUsuario(${JSON.stringify(u.ID_Usuario)})'>Editar</button><button class="text-red-600 hover:underline text-xs" onclick='eliminarUsuario(${JSON.stringify(u.ID_Usuario)})'>Eliminar</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function guardarUsuario(event) {
+  event.preventDefault();
+  const form = event.target;
+  const fd = new FormData(form);
+  const editingId = fd.get('ID_Usuario');
+  const password = fd.get('Password') || '';
+  if (!editingId && !password) { alert('La contraseña es obligatoria para un usuario nuevo.'); return false; }
+  const data = { Nombre: fd.get('Nombre'), Usuario: fd.get('Usuario'), Rol: fd.get('Rol'), Area: fd.get('Area'), Activo: fd.get('Activo') === 'on' };
+  if (password) data.Password_Hash = password;
+  const result = await llamarAPI({ action: editingId ? 'update' : 'create', sheet: 'Usuarios', id: editingId, data });
+  if (result && result.status === 'OK') { form.reset(); cancelarEdicionUsuario(); cargarDatos(); }
+  else alert('Error al guardar: ' + (result ? result.message : 'sin respuesta'));
+  return false;
+}
+
+function editarUsuario(id) {
+  const u = (DATA.Usuarios || []).find(x => x.ID_Usuario === id);
+  if (!u) return;
+  const form = document.getElementById('formUsuario');
+  form.ID_Usuario.value = u.ID_Usuario;
+  form.Nombre.value = u.Nombre;
+  form.Usuario.value = u.Usuario;
+  form.Password.value = '';
+  form.Rol.value = u.Rol;
+  form.Area.value = u.Area || 'Otro';
+  form.Activo.checked = (u.Activo === true || String(u.Activo).toUpperCase() === 'TRUE');
+  document.getElementById('formUsuarioTitulo').textContent = 'Editar Usuario';
+  document.getElementById('usuarioPasswordNota').classList.remove('hidden');
+  document.getElementById('btnCancelarUsuario').classList.remove('hidden');
+  cambiarTab('usuarios');
+}
+function cancelarEdicionUsuario() {
+  document.getElementById('formUsuario').reset();
+  document.getElementById('formUsuario').ID_Usuario.value = '';
+  document.getElementById('formUsuarioTitulo').textContent = 'Crear Usuario';
+  document.getElementById('usuarioPasswordNota').classList.add('hidden');
+  document.getElementById('btnCancelarUsuario').classList.add('hidden');
+}
+async function eliminarUsuario(id) {
+  if (id === AUTH_USER.id) { alert('No puedes eliminar tu propio usuario mientras tienes la sesión abierta.'); return; }
+  if (!confirm('¿Eliminar este usuario? Ya no podrá iniciar sesión.')) return;
+  const result = await llamarAPI({ action: 'delete', sheet: 'Usuarios', id: id });
+  if (result && result.status === 'OK') cargarDatos();
+  else alert('Error al eliminar: ' + (result ? result.message : 'sin respuesta'));
+}
+
+// ==================== DASHBOARD ====================
+const PALETA = ['#818CF8', '#34D399', '#FCD34D', '#F87171', '#60A5FA', '#A78BFA', '#FB923C', '#22D3EE'];
+
+function destruirChart(key) { if (CHARTS[key]) { CHARTS[key].destroy(); delete CHARTS[key]; } }
+
+function parseFechaES(str) {
+  if (!str) return null;
+  const p = String(str).split('/');
+  if (p.length !== 3) return null;
+  const d = new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function renderDashboard() {
+  const retos = DATA.Retos || [];
+  const entregables = DATA.Entregables || [];
+  const metricas = DATA.Metricas || [];
+  const usuarios = DATA.Usuarios || [];
+
+  // ---- Tarjetas ----
+  document.getElementById('kpiRetosTotal').textContent = retos.length;
+  const completados = retos.filter(r => r.Estado === 'Completado').length;
+  document.getElementById('kpiRetosCompletados').textContent = retos.length ? Math.round((completados / retos.length) * 100) + '%' : '0%';
+  document.getElementById('kpiEntregablesRevision').textContent = entregables.filter(e => e.Estado === 'En Revisión').length;
+  const cumplProm = metricas.length ? (metricas.reduce((a, m) => a + (parseFloat(m.Cumplimiento_Porcentaje) || 0), 0) / metricas.length).toFixed(1) : 0;
+  document.getElementById('kpiCumplimientoProm').textContent = cumplProm + '%';
+
+  // ---- Retos por Estado ----
+  const estados = ['Pendiente', 'En Progreso', 'En Pausa', 'Completado'];
+  const conteoEstados = estados.map(es => retos.filter(r => r.Estado === es).length);
+  destruirChart('retos');
+  CHARTS.retos = new Chart(document.getElementById('chartRetos').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: estados, datasets: [{ data: conteoEstados, backgroundColor: ['#FCD34D', '#60A5FA', '#9CA3AF', '#34D399'] }] },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+
+  // ---- Retos por Miembro ----
+  const miembrosRetos = [...new Set(retos.map(r => r.Miembro).filter(Boolean))];
+  destruirChart('retosMiembro');
+  CHARTS.retosMiembro = new Chart(document.getElementById('chartRetosMiembro').getContext('2d'), {
+    type: 'bar',
+    data: { labels: miembrosRetos, datasets: [{ label: 'Retos/Objetivos', data: miembrosRetos.map(mi => retos.filter(r => r.Miembro === mi).length), backgroundColor: '#818CF8' }] },
+    options: { scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { display: false } } }
+  });
+
+  // ---- Entregables por Estado ----
+  const estadosEnt = ['En Revisión', 'Aprobado', 'Con Cambios'];
+  destruirChart('entregablesEstado');
+  CHARTS.entregablesEstado = new Chart(document.getElementById('chartEntregablesEstado').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: estadosEnt, datasets: [{ data: estadosEnt.map(es => entregables.filter(e => e.Estado === es).length), backgroundColor: ['#FCD34D', '#34D399', '#60A5FA'] }] },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+
+  // ---- Entregables por Tipo ----
+  const tiposEnt = ['Pieza Gráfica', 'Video'];
+  destruirChart('entregablesTipo');
+  CHARTS.entregablesTipo = new Chart(document.getElementById('chartEntregablesTipo').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: tiposEnt, datasets: [{ data: tiposEnt.map(t => entregables.filter(e => e.Tipo === t).length), backgroundColor: ['#A78BFA', '#FB923C'] }] },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+
+  // ---- Cumplimiento % por Miembro ----
+  const porMiembro = {};
+  metricas.forEach(m => { (porMiembro[m.Miembro] = porMiembro[m.Miembro] || []).push(parseFloat(m.Cumplimiento_Porcentaje) || 0); });
+  const miembrosKpi = Object.keys(porMiembro);
+  destruirChart('kpi');
+  CHARTS.kpi = new Chart(document.getElementById('chartKpi').getContext('2d'), {
+    type: 'bar',
+    data: { labels: miembrosKpi, datasets: [{ label: 'Cumplimiento %', data: miembrosKpi.map(mi => (porMiembro[mi].reduce((a, b) => a + b, 0) / porMiembro[mi].length).toFixed(1)), backgroundColor: '#818CF8' }] },
+    options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+  });
+
+  // ---- Meta vs Resultado por KPI ----
+  const porKpi = {};
+  metricas.forEach(m => {
+    const key = m.Metrica || 'Sin nombre';
+    if (!porKpi[key]) porKpi[key] = { esperado: [], real: [] };
+    porKpi[key].esperado.push(parseFloat(m.Valor_Esperado) || 0);
+    porKpi[key].real.push(parseFloat(m.Valor_Real) || 0);
+  });
+  const nombresKpi = Object.keys(porKpi);
+  const avg = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+  destruirChart('metaVsReal');
+  CHARTS.metaVsReal = new Chart(document.getElementById('chartMetaVsReal').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: nombresKpi,
+      datasets: [
+        { label: 'Esperado', data: nombresKpi.map(k => avg(porKpi[k].esperado)), backgroundColor: '#CBD5E1' },
+        { label: 'Real', data: nombresKpi.map(k => avg(porKpi[k].real)), backgroundColor: '#4F46E5' }
+      ]
+    },
+    options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'bottom' } } }
+  });
+
+  // ---- Evolución del cumplimiento en el tiempo ----
+  const porFecha = {};
+  metricas.forEach(m => { (porFecha[m.Fecha] = porFecha[m.Fecha] || []).push(parseFloat(m.Cumplimiento_Porcentaje) || 0); });
+  const fechasOrdenadas = Object.keys(porFecha).sort((a, b) => {
+    const da = parseFechaES(a), db = parseFechaES(b);
+    if (!da || !db) return 0;
+    return da - db;
+  });
+  destruirChart('evolucion');
+  CHARTS.evolucion = new Chart(document.getElementById('chartEvolucion').getContext('2d'), {
+    type: 'line',
+    data: { labels: fechasOrdenadas, datasets: [{ label: 'Cumplimiento % promedio', data: fechasOrdenadas.map(f => avg(porFecha[f])), borderColor: '#4F46E5', backgroundColor: 'rgba(79,70,229,0.15)', fill: true, tension: 0.3 }] },
+    options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+  });
+
+  // ---- Cumplimiento promedio por Área (solo admin, requiere Usuarios) ----
+  if (esAdmin() && usuarios.length) {
+    const areaPorNombre = {};
+    usuarios.forEach(u => { areaPorNombre[u.Nombre] = u.Area || 'Otro'; });
+    const porArea = {};
+    metricas.forEach(m => {
+      const area = areaPorNombre[m.Miembro] || 'Sin asignar';
+      (porArea[area] = porArea[area] || []).push(parseFloat(m.Cumplimiento_Porcentaje) || 0);
+    });
+    const areas = Object.keys(porArea);
+    destruirChart('area');
+    CHARTS.area = new Chart(document.getElementById('chartArea').getContext('2d'), {
+      type: 'bar',
+      data: { labels: areas, datasets: [{ label: 'Cumplimiento % promedio', data: areas.map(a => avg(porArea[a]).toFixed(1)), backgroundColor: PALETA }] },
+      options: { indexAxis: 'y', scales: { x: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+    });
+  }
+}
+
+// ==================== UTILIDADES ====================
+function esc(v) {
+  if (v === undefined || v === null) return '';
+  return String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ==================== INICIO ====================
+window.onload = function () {
+  if (!API_URL) { document.getElementById('apiWarning').classList.remove('hidden'); mostrarLogin(); abrirConfig(); return; }
+  if (!AUTH_TOKEN || !AUTH_USER) { mostrarLogin(); return; }
+  mostrarApp();
+  cargarDatos();
+};
+</script>
+</body>
+</html>

@@ -18,6 +18,13 @@ export const LEVELS = [
   { id: "COLABORADOR", label: "Colaborador" },
 ] as const;
 
+export const STATUS_COLUMNS = [
+  { id: "TODO", label: "Por Hacer" },
+  { id: "PROGRESS", label: "En Proceso" },
+  { id: "REVIEW", label: "En Revisión" },
+  { id: "DONE", label: "Aprobado / Listo" },
+] as const;
+
 export const PLATFORMS = [
   { id: "INSTAGRAM", label: "Instagram", color: "#E1306C" },
   { id: "TIKTOK", label: "TikTok", color: "#25F4EE" },

@@ -1,24 +1,25 @@
 /* =========================================================================
    SUPER OZONO — Identidad visual
-   Dirección estética: "capa atmosférica nocturna" — negro verdoso profundo,
-   acento chartreuse eléctrico (ozono), tipografía editorial (Fraunces) +
-   técnica (IBM Plex Sans / Space Mono) para una herramienta operativa que
-   no se siente genérica.
+   Dirección estética: alineada a la marca real (superozonoglobal.com) —
+   negro verdoso profundo, acento verde esmeralda/menta (#10b981/#45fc9c),
+   tipografía sans (Plus Jakarta Sans / IBM Plex Sans / Space Mono).
+   Ver PROYECTOS/src/REBRAND_DESIGN.md para el detalle de la decisión.
    ========================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Poppins:wght@400;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Poppins:wght@400;900&display=swap');
 
 :root {
-  --bg: #0a0d08;
-  --bg-elevated: #11150d;
-  --surface: #171c12;
-  --surface-hover: #1e2417;
-  --border: #262e1c;
-  --border-soft: #1c2215;
+  --bg: #020d06;
+  --bg-elevated: #071409;
+  --surface: #0c1c11;
+  --surface-hover: #12271a;
+  --border: #1d3524;
+  --border-soft: #17291d;
 
-  --accent: #c6ff3d;
-  --accent-dim: #8fb82c;
-  --accent-ink: #10150a;
+  --accent: #10b981;
+  --accent-dim: #037a3a;
+  --accent-bright: #45fc9c;
+  --accent-ink: #ffffff;
   --coral: #ff5c3d;
   --sky: #5cc9ff;
   --violet: #c77dff;
@@ -26,11 +27,11 @@
   --danger: #ff5c5c;
   --mint: #8fe0a8;
 
-  --text: #f2f4e8;
-  --text-muted: #9aa08c;
-  --text-faint: #656e54;
+  --text: #eef7f1;
+  --text-muted: #8fae9c;
+  --text-faint: #5c7568;
 
-  --font-display: 'Fraunces', serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'IBM Plex Sans', sans-serif;
   --font-mono: 'Space Mono', monospace;
 

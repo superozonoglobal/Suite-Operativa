@@ -20,26 +20,6 @@ export default async function SignInPage({
         )}
 
         <form
-          action={async () => {
-            "use server";
-            await signIn("google", { redirectTo: "/dashboard" });
-          }}
-        >
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-gradient-to-br from-[var(--accent-dim)] to-[#00a050] px-6 py-3 font-semibold text-white"
-          >
-            Iniciar sesión con Google
-          </button>
-        </form>
-
-        <div className="flex items-center gap-3 text-xs text-[var(--text-faint)]">
-          <span className="h-px flex-1 bg-[var(--border)]" />
-          o con email y contraseña
-          <span className="h-px flex-1 bg-[var(--border)]" />
-        </div>
-
-        <form
           action={async (formData: FormData) => {
             "use server";
             await signIn("credentials", {
@@ -66,7 +46,7 @@ export default async function SignInPage({
           />
           <button
             type="submit"
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] px-6 py-3 font-semibold text-[var(--text)]"
+            className="rounded-lg bg-gradient-to-br from-[var(--accent-dim)] to-[#00a050] px-6 py-3 font-semibold text-white"
           >
             Iniciar sesión
           </button>

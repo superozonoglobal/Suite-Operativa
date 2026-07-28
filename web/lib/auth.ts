@@ -1,23 +1,11 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { isEmailAllowed } from "@/lib/authAllowList";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
   providers: [
-    Google({
-      authorization: {
-        params: {
-          access_type: "offline",
-          prompt: "consent",
-          scope: "openid email profile https://www.googleapis.com/auth/drive.file",
-        },
-      },
-    }),
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
@@ -38,8 +26,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  // Credentials provider does not support database-persisted sessions
-  // (Auth.js constraint, not a design choice) — see ADR-0008.
+  // Credentials-only auth: sessions are always JWT (no adapter, see ADR-0010).
   session: { strategy: "jwt" },
   callbacks: {
     async signIn({ user }) {
@@ -60,18 +47,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.roleTag = token.roleTag ?? null;
       }
       return session;
-    },
-  },
-  events: {
-    async createUser({ user }) {
-      const email = (user.email ?? "").toLowerCase();
-      const superuserEmail = (process.env.SEED_SUPERUSER_EMAIL ?? "").toLowerCase();
-      if (email === superuserEmail) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { level: "SUPERUSER" },
-        });
-      }
     },
   },
 });

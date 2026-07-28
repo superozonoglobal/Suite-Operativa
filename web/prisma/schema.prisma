@@ -1,13 +1,355 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../app/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ---- Auth.js required models (Prisma adapter contract) --------------------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---- Domain enums (ported 1:1 from Suite_Operativa_Frontend/data.js) ------
+
+enum RoleTag {
+  DIRECTOR
+  VENTAS
+  COPYWRITING
+  PUBLICISTA
+  DISENADOR
+  FILMMAKER
+  EDITOR_VIDEO
+  COMMUNITY_MANAGER
+  TRAFIKER
+  ECOMMERCE
+}
+
+enum Level {
+  DIRECTOR
+  LIDER
+  COLABORADOR
+}
+
+enum TaskStatus {
+  TODO
+  PROGRESS
+  REVIEW
+  DONE
+}
+
+enum GoalType {
+  NUMERO
+  PORCENTAJE
+  CHECKLIST
+}
+
+enum GoalScope {
+  PERSONAL
+  EQUIPO
+}
+
+enum GoalStatus {
+  ACTIVA
+  APROBADA
+  COMPLETADA
+  FALLIDA
+}
+
+enum Platform {
+  INSTAGRAM
+  TIKTOK
+  FACEBOOK
+  LINKEDIN
+  X
+  YOUTUBE
+}
+
+enum PostStatus {
+  BORRADOR
+  PROGRAMADO
+  PUBLICADO
+}
+
+enum RequisitionStatus {
+  PENDIENTE
+  ACEPTADA
+  RECHAZADA
+}
+
+// ---- Core domain -----------------------------------------------------------
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  image         String?
+  roleTag       RoleTag?
+  level         Level    @default(COLABORADOR)
+  phone         String?
+  notifyChannel String   @default("app")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  accounts             Account[]
+  sessions             Session[]
+  ledProjects          Project[]      @relation("ProjectLead")
+  assignedTasks        Task[]         @relation("TaskAssignee")
+  createdTasks         Task[]         @relation("TaskCreatedBy")
+  taskComments         TaskComment[]
+  goals                Goal[]
+  assignedPosts        Post[]         @relation("PostAssignee")
+  requisitionsSent     Requisition[]  @relation("RequisitionFrom")
+  requisitionsReceived Requisition[]  @relation("RequisitionTo")
+  messagesSent         Message[]      @relation("MessageSender")
+  messagesReceived     Message[]      @relation("MessageRecipient")
+  automationsCreated   Automation[]
+  notifications        Notification[]
+  driveFilesUploaded   DriveFile[]
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  name            String
+  driveFolderId   String?
+  driveFolderName String?
+  driveFolderLink String?
+  leadId          String?
+  lead            User?    @relation("ProjectLead", fields: [leadId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  products Product[]
+  tasks    Task[]
+  posts    Post[]
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  name            String
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  driveFolderId   String?
+  driveFolderName String?
+  driveFolderLink String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tasks Task[]
+  posts Post[]
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  projectId   String?
+  project     Project?   @relation(fields: [projectId], references: [id])
+  productId   String?
+  product     Product?   @relation(fields: [productId], references: [id])
+  roleTag     RoleTag?
+  assigneeId  String?
+  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  status      TaskStatus @default(TODO)
+  dueDate     DateTime?
+  completedAt DateTime?
+  goalId      String?
+  goal        Goal?      @relation(fields: [goalId], references: [id])
+  createdById String
+  createdBy   User       @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  comments     TaskComment[]
+  history      TaskHistoryEntry[]
+  driveFiles   DriveFile[]
+  posts        Post[]
+  requisitions Requisition[]
+  dependsOn    TaskDependency[]   @relation("DependentTask")
+  dependedOnBy TaskDependency[]   @relation("DependsOnTask")
+}
+
+model TaskDependency {
+  id            String @id @default(cuid())
+  taskId        String
+  task          Task   @relation("DependentTask", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnId   String
+  dependsOnTask Task   @relation("DependsOnTask", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependsOnId])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model TaskHistoryEntry {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model Goal {
+  id          String     @id @default(cuid())
+  userId      String?
+  user        User?      @relation(fields: [userId], references: [id])
+  title       String
+  description String?
+  type        GoalType
+  scope       GoalScope
+  target      Int?
+  current     Int        @default(0)
+  status      GoalStatus @default(ACTIVA)
+  month       String // "YYYY-MM"
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  checklistItems GoalChecklistItem[]
+  tasks          Task[]
+}
+
+model GoalChecklistItem {
+  id     String  @id @default(cuid())
+  goalId String
+  goal   Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  label  String
+  done   Boolean @default(false)
+}
+
+model Post {
+  id            String     @id @default(cuid())
+  taskId        String?
+  task          Task?      @relation(fields: [taskId], references: [id])
+  projectId     String?
+  project       Project?   @relation(fields: [projectId], references: [id])
+  productId     String?
+  product       Product?   @relation(fields: [productId], references: [id])
+  title         String
+  platform      Platform
+  scheduledDate DateTime?
+  scheduledTime String?
+  status        PostStatus @default(BORRADOR)
+  assigneeId    String?
+  assignee      User?      @relation("PostAssignee", fields: [assigneeId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Requisition {
+  id          String            @id @default(cuid())
+  fromUserId  String
+  fromUser    User              @relation("RequisitionFrom", fields: [fromUserId], references: [id])
+  toUserId    String
+  toUser      User              @relation("RequisitionTo", fields: [toUserId], references: [id])
+  title       String
+  description String?           @db.Text
+  status      RequisitionStatus @default(PENDIENTE)
+  motivo      String?
+  taskId      String?
+  task        Task?             @relation(fields: [taskId], references: [id])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  driveFiles DriveFile[]
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  senderId    String
+  sender      User      @relation("MessageSender", fields: [senderId], references: [id])
+  recipientId String?
+  recipient   User?     @relation("MessageRecipient", fields: [recipientId], references: [id])
+  channel     String?
+  content     String    @db.Text
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Automation {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  trigger     String
+  action      Json
+  enabled     Boolean  @default(true)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model DriveFile {
+  id            String       @id @default(cuid())
+  driveFileId   String
+  name          String
+  mimeType      String
+  webViewLink   String
+  taskId        String?
+  task          Task?        @relation(fields: [taskId], references: [id])
+  requisitionId String?
+  requisition   Requisition? @relation(fields: [requisitionId], references: [id])
+  uploadedById  String
+  uploadedBy    User         @relation(fields: [uploadedById], references: [id])
+  createdAt     DateTime     @default(now())
+}
+
+model OrgSettings {
+  id                 String   @id @default(cuid())
+  allowedEmailDomain String?
+  allowedEmails      String[]
+  updatedAt          DateTime @updatedAt
 }

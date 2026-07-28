@@ -202,7 +202,7 @@ body {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
-  color: #0a0d08;
+  color: var(--bg);
   flex-shrink: 0;
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--border);
 }
@@ -228,11 +228,11 @@ body {
 .btn:hover { background: var(--surface-hover); border-color: var(--text-faint); }
 .btn:active { transform: scale(0.97); }
 .btn-accent {
-  background: var(--accent);
+  background: linear-gradient(-45deg, var(--accent-dim), #00a050);
   color: var(--accent-ink);
   border-color: var(--accent);
 }
-.btn-accent:hover { background: #d4ff66; }
+.btn-accent:hover { background: linear-gradient(-45deg, var(--accent), var(--accent-bright)); }
 .btn-danger { background: transparent; color: var(--danger); border-color: rgba(255, 92, 92, 0.4); }
 .btn-danger:hover { background: rgba(255, 92, 92, 0.08); }
 .btn-ghost { background: transparent; border-color: transparent; color: var(--text-muted); }

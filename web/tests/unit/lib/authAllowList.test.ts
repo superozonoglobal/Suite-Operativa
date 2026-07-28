@@ -3,24 +3,24 @@ import { isEmailAllowed } from "@/lib/authAllowList";
 
 describe("isEmailAllowed", () => {
   beforeEach(() => {
-    process.env.SEED_DIRECTOR_EMAIL = "diego.azcarate@example.com";
+    process.env.SEED_SUPERUSER_EMAIL = "leonardecojt@gmail.com";
     process.env.ALLOWED_EMAIL_DOMAIN = "superozonoglobal.com";
   });
 
-  it("allows the seed director email", () => {
-    expect(isEmailAllowed("diego.azcarate@example.com")).toBe(true);
+  it("allows the seed superuser email", () => {
+    expect(isEmailAllowed("leonardecojt@gmail.com")).toBe(true);
   });
 
   it("allows any email on the allowed domain", () => {
     expect(isEmailAllowed("maria.fuentes@superozonoglobal.com")).toBe(true);
   });
 
-  it("is case-insensitive on both the director email and the domain", () => {
-    expect(isEmailAllowed("Diego.Azcarate@Example.com")).toBe(true);
+  it("is case-insensitive on both the superuser email and the domain", () => {
+    expect(isEmailAllowed("Leonardecojt@Gmail.com")).toBe(true);
     expect(isEmailAllowed("Maria@SuperOzonoGlobal.com")).toBe(true);
   });
 
-  it("rejects an email outside the allowed domain and not the director", () => {
+  it("rejects an email outside the allowed domain and not the superuser", () => {
     expect(isEmailAllowed("random@gmail.com")).toBe(false);
   });
 

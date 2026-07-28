@@ -63,7 +63,8 @@ enum RoleTag {
 }
 
 enum Level {
-  DIRECTOR
+  SUPERUSER
+  PROJECT_MANAGER
   LIDER
   COLABORADOR
 }

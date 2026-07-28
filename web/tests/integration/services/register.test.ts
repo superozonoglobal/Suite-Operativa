@@ -4,14 +4,14 @@ import { registerUser, EmailNotAllowedError, AlreadyRegisteredError } from "@/li
 
 const TEST_EMAILS = [
   "colaborador@superozonoglobal.com",
-  "diego.azcarate@example.com",
+  "leo.superuser-test@example.com",
   "outsider@gmail.com",
   "existing-google-user@superozonoglobal.com",
 ];
 
 describe("registerUser", () => {
   beforeEach(() => {
-    process.env.SEED_DIRECTOR_EMAIL = "diego.azcarate@example.com";
+    process.env.SEED_SUPERUSER_EMAIL = "leo.superuser-test@example.com";
     process.env.ALLOWED_EMAIL_DOMAIN = "superozonoglobal.com";
   });
 
@@ -36,13 +36,13 @@ describe("registerUser", () => {
     expect(user.passwordHash).not.toBe("password123");
   });
 
-  it("bootstraps DIRECTOR level for the seed director email", async () => {
+  it("bootstraps SUPERUSER level for the seed superuser email", async () => {
     const user = await registerUser({
-      name: "Diego",
-      email: "diego.azcarate@example.com",
+      name: "Leo",
+      email: "leo.superuser-test@example.com",
       password: "password123",
     });
-    expect(user.level).toBe("DIRECTOR");
+    expect(user.level).toBe("SUPERUSER");
   });
 
   it("rejects registering twice with the same email", async () => {

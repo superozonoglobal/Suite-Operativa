@@ -11,11 +11,12 @@ export const ROLES = [
   { id: "ECOMMERCE", name: "Encargado de Ecommerce", area: "Comercial" },
 ] as const;
 
-export const LEVELS = {
-  DIRECTOR: "DIRECTOR",
-  LIDER: "LIDER",
-  COLABORADOR: "COLABORADOR",
-} as const;
+export const LEVELS = [
+  { id: "SUPERUSER", label: "Superusuario" },
+  { id: "PROJECT_MANAGER", label: "Project Manager" },
+  { id: "LIDER", label: "Líder" },
+  { id: "COLABORADOR", label: "Colaborador" },
+] as const;
 
 export const PLATFORMS = [
   { id: "INSTAGRAM", label: "Instagram", color: "#E1306C" },

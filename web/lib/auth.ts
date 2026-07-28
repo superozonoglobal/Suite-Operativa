@@ -65,11 +65,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async createUser({ user }) {
       const email = (user.email ?? "").toLowerCase();
-      const directorEmail = (process.env.SEED_DIRECTOR_EMAIL ?? "").toLowerCase();
-      if (email === directorEmail) {
+      const superuserEmail = (process.env.SEED_SUPERUSER_EMAIL ?? "").toLowerCase();
+      if (email === superuserEmail) {
         await prisma.user.update({
           where: { id: user.id },
-          data: { level: "DIRECTOR" },
+          data: { level: "SUPERUSER" },
         });
       }
     },

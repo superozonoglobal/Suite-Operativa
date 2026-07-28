@@ -30,7 +30,7 @@ export async function registerUser(input: RegisterInput) {
   }
 
   const passwordHash = await bcrypt.hash(input.password, 10);
-  const directorEmail = (process.env.SEED_DIRECTOR_EMAIL ?? "").toLowerCase();
+  const superuserEmail = (process.env.SEED_SUPERUSER_EMAIL ?? "").toLowerCase();
 
   if (existing) {
     return prisma.user.update({
@@ -44,7 +44,7 @@ export async function registerUser(input: RegisterInput) {
       email,
       name: input.name,
       passwordHash,
-      level: email === directorEmail ? "DIRECTOR" : "COLABORADOR",
+      level: email === superuserEmail ? "SUPERUSER" : "COLABORADOR",
     },
   });
 }

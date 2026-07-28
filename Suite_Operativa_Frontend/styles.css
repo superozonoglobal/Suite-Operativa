@@ -102,8 +102,7 @@ body {
 .font-mono { font-family: var(--font-mono); letter-spacing: 0.02em; }
 
 /* Wordmark "Super Ozono": Poppins Regular para "Super" + Poppins Black para
-   "Ozono", en vez de la itálica editorial de Fraunces usada en el resto del
-   texto display. */
+   "Ozono", en vez de Plus Jakarta Sans usada en el resto del texto display. */
 .brand-wordmark {
   font-family: 'Poppins', sans-serif;
   font-style: normal;

@@ -10,6 +10,7 @@ export async function registerAction(formData: FormData) {
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
+    roleTag: (formData.get("roleTag") as string) || undefined,
   });
 
   if (!parsed.success) {

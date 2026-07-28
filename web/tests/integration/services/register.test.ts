@@ -6,7 +6,8 @@ const TEST_EMAILS = [
   "colaborador@superozonoglobal.com",
   "leo.superuser-test@example.com",
   "outsider@gmail.com",
-  "existing-google-user@superozonoglobal.com",
+  "existing-user-no-password@superozonoglobal.com",
+  "role-test@superozonoglobal.com",
 ];
 
 describe("registerUser", () => {
@@ -57,22 +58,41 @@ describe("registerUser", () => {
     ).rejects.toThrow(AlreadyRegisteredError);
   });
 
-  it("links a password onto an existing Google-created user without changing their level", async () => {
+  it("links a password onto an existing passwordless user without changing their level", async () => {
     await prisma.user.create({
       data: {
-        email: "existing-google-user@superozonoglobal.com",
-        name: "Existing Google User",
+        email: "existing-user-no-password@superozonoglobal.com",
+        name: "Existing User",
         level: "LIDER",
       },
     });
 
     const user = await registerUser({
-      name: "Existing Google User",
-      email: "existing-google-user@superozonoglobal.com",
+      name: "Existing User",
+      email: "existing-user-no-password@superozonoglobal.com",
       password: "password123",
     });
 
     expect(user.level).toBe("LIDER");
     expect(user.passwordHash).not.toBeNull();
+  });
+
+  it("persists the self-declared roleTag", async () => {
+    const user = await registerUser({
+      name: "Role Test",
+      email: "role-test@superozonoglobal.com",
+      password: "password123",
+      roleTag: "DISENADOR",
+    });
+    expect(user.roleTag).toBe("DISENADOR");
+  });
+
+  it("leaves roleTag null when not provided", async () => {
+    const user = await registerUser({
+      name: "Colaborador Test",
+      email: "colaborador@superozonoglobal.com",
+      password: "password123",
+    });
+    expect(user.roleTag).toBeNull();
   });
 });

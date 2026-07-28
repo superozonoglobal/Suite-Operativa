@@ -44,6 +44,7 @@ export async function registerUser(input: RegisterInput) {
       email,
       name: input.name,
       passwordHash,
+      roleTag: input.roleTag,
       level: email === superuserEmail ? "SUPERUSER" : "COLABORADOR",
     },
   });

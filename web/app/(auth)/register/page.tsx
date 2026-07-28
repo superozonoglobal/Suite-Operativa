@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { registerAction } from "@/lib/actions/register";
+import { ROLES } from "@/lib/constants";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid: "Revisá los datos: nombre, email válido y contraseña de al menos 8 caracteres.",
@@ -23,7 +24,7 @@ export default async function RegisterPage({
       >
         <h1 className="text-2xl font-bold text-[var(--text)]">Crear cuenta</h1>
         <p className="text-sm text-[var(--text-muted)]">
-          Solo para el equipo de Suite Operativa. Si tu email no está autorizado, contactá al director.
+          Solo para el equipo de Suite Operativa. Si tu email no está autorizado, contactá al superusuario.
         </p>
 
         {errorMessage && (
@@ -61,6 +62,22 @@ export default async function RegisterPage({
             minLength={8}
             className="rounded-md border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-[var(--text)]"
           />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm text-[var(--text-muted)]">
+          Tu rol
+          <select
+            name="roleTag"
+            defaultValue=""
+            className="rounded-md border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-[var(--text)]"
+          >
+            <option value="">Sin especificar</option>
+            {ROLES.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
         </label>
 
         <button

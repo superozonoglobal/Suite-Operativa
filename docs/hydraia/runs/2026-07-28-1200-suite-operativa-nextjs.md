@@ -14,7 +14,8 @@ frozen plan per the user's confirmed answer to the "scope for today" question
 
 **Spec:** `docs/hydraia/specs/2026-07-28-suite-operativa-nextjs-design.md`
 **Plan:** `docs/hydraia/plans/2026-07-28-suite-operativa-nextjs.md`
-**ADRs:** `docs/hydraia/adr/0001` through `0007`
+**ADRs:** `docs/hydraia/adr/0001` through `0010` (0001-0007 from the original
+plan-only run; 0008-0010 added mid-execution — see below)
 
 ## Key context discovered mid-run (not known at the start of this session)
 - A prior session had already started this exact initiative:
@@ -45,23 +46,30 @@ frozen plan per the user's confirmed answer to the "scope for today" question
       (Pass A found a self-contradictory verification step in Task 0-3; Pass B
       found a shell-quoting bug in Task 0-1's verification command — both fixed
       inline). `.active-plan` deliberately NOT armed (plan-only stop).
-- [~] Phase 4 — Execution: **Plan Phases 0, 1, 2, 3, 4, and 6 done** (Phase 5,
-      Drive integration, deliberately skipped for now — needs Google Cloud
-      OAuth credentials, Task 7-1, which the user hasn't set up yet; Phase 7,
-      deployment, also not started). User drove this incrementally across many
+- [~] Phase 4 — Execution: **Plan Phases 0, 1, 2, 3, 4, and 6 done. Plan Phase 5
+      (Drive integration) is CANCELLED, not deferred** — the user decided
+      against any Google Cloud dependency at all (ADR-0010): Google sign-in
+      was removed entirely, auth is Credentials-only (email+password), and
+      registration now collects a self-declared `roleTag` (the RoleTag catalog
+      also changed: `DIRECTOR` → `DEVELOPER`). Plan Task 7-1 (Google Cloud
+      setup) is removed from scope along with it. Plan Phase 7 (deployment)
+      still not started otherwise. User drove this incrementally across many
       same-day turns: "Fase 0 y 1" → hybrid-auth detour (ADR-0008) → level
       hierarchy restructure (ADR-0009) → "Fase 2" → "Fase 3" → "Fase 4" →
-      "Fase 6" (skipping 5). All 12 reference modules now have a real route.
-      Commits: `7f9416e`/`e194bca`/`b12aa56`/`cb65ab8`/`a72def5` (Plan Phase
-      0-1), `51aa3b0` (ADR-0008), `8fc668b` (ADR-0009), `4d442de` (Task 2-1),
-      `240c7a8` (Task 2-2), `2443d1d` (Task 3-1), `0457025` (Task 3-2),
-      `7ed6261` (Task 3-3), `5a6f28a` (Task 4-1), `8c73ec7` (Task 4-2),
-      `a8cc1ed` (Task 4-3), `502149f` (Task 6-1: Analítica), `71b5f8a` (Task
-      6-2: Informes, PDF ported from `reports.js`), `dd95a0a` (Task 6-3:
-      Automatizaciones), `8f9e5d1` (Task 6-4: Configuración). 65 tests
-      passing, build/typecheck clean at every commit. No double code review or
-      verify-and-close run yet — deferred until Phase 5/7 land or the user
-      explicitly asks for a review pass.
+      "Fase 6" (skipping 5) → cancel Drive/Google entirely (ADR-0010). All 12
+      reference modules have a real route. Commits: `7f9416e`/`e194bca`/
+      `b12aa56`/`cb65ab8`/`a72def5` (Plan Phase 0-1), `51aa3b0` (ADR-0008),
+      `8fc668b` (ADR-0009), `4d442de` (Task 2-1), `240c7a8` (Task 2-2),
+      `2443d1d` (Task 3-1), `0457025` (Task 3-2), `7ed6261` (Task 3-3),
+      `5a6f28a` (Task 4-1), `8c73ec7` (Task 4-2), `a8cc1ed` (Task 4-3),
+      `502149f` (Task 6-1), `71b5f8a` (Task 6-2), `dd95a0a` (Task 6-3),
+      `8f9e5d1` (Task 6-4), `59e9a6b` (ADR-0010 + supersession notes on
+      ADR-0003/0004/0008), `8fb29c0` (RoleTag rename), `649cc57` (remove
+      Google auth), `def4736` (registration role selection), `a50e0af`
+      (dependency/env cleanup). 67 tests passing, build/typecheck clean at
+      every commit. No double code review or verify-and-close run yet —
+      deferred until Phase 7 lands or the user explicitly asks for a review
+      pass.
 - [ ] Phase 5 — Code review (not run — deferred, see above)
 - [ ] Phase 6 — Verify & close (not run — see above)
 
@@ -117,15 +125,18 @@ frozen plan per the user's confirmed answer to the "scope for today" question
 - No E2E suite in this plan (greenfield project, no existing E2E framework to
   detect) — flagged as a Phase-6-equivalent follow-up once MVP modules exist.
 
-## Next steps
-1. Continue execution with the plan's Phase 2 (Proyectos, Metas, Calendario
-   Editorial) onward — `docs/hydraia/.active-plan` is already armed, pointing at
-   this plan.
-2. Task 7-1 (Google Cloud OAuth/Drive/Picker setup) unblocks real browser
-   verification of the auth flow and app shell — worth doing early rather than
-   waiting, since Phase 5's Drive integration also depends on it.
-3. Task 7-2 (GitHub push + Vercel import + Neon wiring) can also happen any
-   time — nothing so far depends on it, but the user has already created both
-   the GitHub repo and Vercel team, so it's unblocked whenever desired.
-4. No code review or verify-and-close pass has run yet — worth doing once a
-   larger slice (e.g. through Phase 2 or the MVP) is built, not after every task.
+## Next steps (as of ADR-0010, all 12 modules built, Drive/Google cancelled)
+1. All 12 reference modules exist and work against Credentials-only auth —
+   nothing left to build from the original module list. Remaining plan scope
+   is deployment only.
+2. Task 7-2 (GitHub push + Vercel import + Neon wiring) — the user already
+   created both the GitHub repo (`superozonoglobal/Suite-Operativa`) and
+   Vercel team (`robinsons-projects-27c1b844`, see ADR-0005), so it's
+   unblocked whenever desired. Task 7-1 (Google Cloud setup) no longer applies
+   — removed from scope by ADR-0010.
+3. No code review or verify-and-close pass has run yet — worth doing before
+   or during the actual deployment push, not after every task.
+4. Manual browser verification of the full app (sign up → sign in → click
+   through all 12 modules) hasn't happened yet in this session — only build/
+   typecheck/vitest were run after each task. Worth a real click-through
+   before calling this done.

@@ -25,12 +25,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, user }) {
       if (session.user) {
         const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-        const sessionUser = session.user as typeof session.user & {
-          level?: string;
-          roleTag?: string | null;
-        };
-        sessionUser.level = dbUser?.level;
-        sessionUser.roleTag = dbUser?.roleTag ?? null;
+        session.user.level = dbUser?.level;
+        session.user.roleTag = dbUser?.roleTag ?? null;
       }
       return session;
     },

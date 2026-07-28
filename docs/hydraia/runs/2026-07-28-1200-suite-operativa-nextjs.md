@@ -45,19 +45,23 @@ frozen plan per the user's confirmed answer to the "scope for today" question
       (Pass A found a self-contradictory verification step in Task 0-3; Pass B
       found a shell-quoting bug in Task 0-1's verification command — both fixed
       inline). `.active-plan` deliberately NOT armed (plan-only stop).
-- [~] Phase 4 — Execution: **Plan Phases 0, 1, 2, 3, and 4 done** (user drove
-      this incrementally across several same-day turns: "Fase 0 y 1" →
-      hybrid-auth detour (ADR-0008) → level hierarchy restructure (ADR-0009) →
-      "Fase 2" → "Fase 3" → "Fase 4"). Plan Phases 5-7 NOT started (Drive
-      integration, Analítica/Informes/Automatizaciones/Configuración,
-      deployment setup). Commits: `7f9416e`/`e194bca`/`b12aa56`/`cb65ab8`/
-      `a72def5` (Plan Phase 0-1), `51aa3b0` (ADR-0008), `8fc668b` (ADR-0009),
-      `4d442de` (Task 2-1), `240c7a8` (Task 2-2), `2443d1d` (Task 3-1),
-      `0457025` (Task 3-2), `7ed6261` (Task 3-3), `5a6f28a` (Task 4-1:
-      Requisiciones, accepting creates a linked Task), `8c73ec7` (Task 4-2:
-      Mensajes), `a8cc1ed` (Task 4-3: Notificaciones). 46 tests passing,
-      build/typecheck clean at every commit. No double code review or
-      verify-and-close run yet — deferred until more of the plan is built.
+- [~] Phase 4 — Execution: **Plan Phases 0, 1, 2, 3, 4, and 6 done** (Phase 5,
+      Drive integration, deliberately skipped for now — needs Google Cloud
+      OAuth credentials, Task 7-1, which the user hasn't set up yet; Phase 7,
+      deployment, also not started). User drove this incrementally across many
+      same-day turns: "Fase 0 y 1" → hybrid-auth detour (ADR-0008) → level
+      hierarchy restructure (ADR-0009) → "Fase 2" → "Fase 3" → "Fase 4" →
+      "Fase 6" (skipping 5). All 12 reference modules now have a real route.
+      Commits: `7f9416e`/`e194bca`/`b12aa56`/`cb65ab8`/`a72def5` (Plan Phase
+      0-1), `51aa3b0` (ADR-0008), `8fc668b` (ADR-0009), `4d442de` (Task 2-1),
+      `240c7a8` (Task 2-2), `2443d1d` (Task 3-1), `0457025` (Task 3-2),
+      `7ed6261` (Task 3-3), `5a6f28a` (Task 4-1), `8c73ec7` (Task 4-2),
+      `a8cc1ed` (Task 4-3), `502149f` (Task 6-1: Analítica), `71b5f8a` (Task
+      6-2: Informes, PDF ported from `reports.js`), `dd95a0a` (Task 6-3:
+      Automatizaciones), `8f9e5d1` (Task 6-4: Configuración). 65 tests
+      passing, build/typecheck clean at every commit. No double code review or
+      verify-and-close run yet — deferred until Phase 5/7 land or the user
+      explicitly asks for a review pass.
 - [ ] Phase 5 — Code review (not run — deferred, see above)
 - [ ] Phase 6 — Verify & close (not run — see above)
 

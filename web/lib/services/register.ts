@@ -27,7 +27,7 @@ export class RequiresAdminSetupError extends Error {
 export async function registerUser(input: RegisterInput) {
   const email = input.email.toLowerCase();
 
-  if (!isEmailAllowed(email)) {
+  if (!(await isEmailAllowed(email))) {
     throw new EmailNotAllowedError();
   }
 

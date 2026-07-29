@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { updateTaskStatus } from "@/lib/services/tasks";
+import { updateTaskStatus, updateTaskFields } from "@/lib/services/tasks";
 import { updateTaskSchema } from "@/lib/validation/task";
-import type { Prisma } from "@/app/generated/prisma/client";
+import { errorResponse } from "@/lib/api/errorResponse";
 
 // Next.js 16: dynamic route params are a Promise (see plan Global Constraints).
 type RouteContext = { params: Promise<{ id: string }> };
@@ -31,6 +31,11 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ data: null, meta: {}, errors: [{ message: "Unauthorized" }] }, { status: 401 });
   }
 
+  const actingUser = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!actingUser) {
+    return NextResponse.json({ data: null, meta: {}, errors: [{ message: "Unauthorized" }] }, { status: 401 });
+  }
+
   const { id } = await params;
   const body = await req.json();
   const parsed = updateTaskSchema.safeParse(body);
@@ -41,18 +46,17 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     );
   }
 
-  if (parsed.data.status) {
-    const task = await updateTaskStatus(id, parsed.data.status, session.user.id);
+  try {
+    if (parsed.data.status) {
+      const task = await updateTaskStatus(id, parsed.data.status, actingUser);
+      return NextResponse.json({ data: task, meta: {}, errors: [] });
+    }
+
+    const { status: _status, ...rest } = parsed.data;
+    void _status;
+    const task = await updateTaskFields(id, rest, actingUser);
     return NextResponse.json({ data: task, meta: {}, errors: [] });
+  } catch (err) {
+    return errorResponse(err);
   }
-
-  const { status: _status, ...rest } = parsed.data;
-  void _status;
-  const data: Prisma.TaskUncheckedUpdateInput = { ...rest };
-  if (rest.dueDate !== undefined) {
-    data.dueDate = rest.dueDate ? new Date(rest.dueDate) : null;
-  }
-
-  const task = await prisma.task.update({ where: { id }, data });
-  return NextResponse.json({ data: task, meta: {}, errors: [] });
 }

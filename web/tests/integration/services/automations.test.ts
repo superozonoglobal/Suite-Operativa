@@ -41,13 +41,24 @@ describe("automations service", () => {
     expect(automation.createdById).toBe(liderId);
   });
 
-  it("toggles enabled state", async () => {
+  it("toggles enabled state when the actor is LIDER or above", async () => {
     const automation = await createAutomation(
       { name: "Toggle test", trigger: "task:overdue", action: { type: "notify" } },
       { id: liderId, level: "LIDER" }
     );
-    const disabled = await setAutomationEnabled(automation.id, false);
+    const disabled = await setAutomationEnabled(automation.id, false, { level: "LIDER" });
     expect(disabled.enabled).toBe(false);
+  });
+
+  it("rejects toggling enabled state when the actor is a plain COLABORADOR", async () => {
+    const automation = await createAutomation(
+      { name: "Toggle forbidden test", trigger: "task:overdue", action: { type: "notify" } },
+      { id: liderId, level: "LIDER" }
+    );
+
+    await expect(
+      setAutomationEnabled(automation.id, false, { level: "COLABORADOR" })
+    ).rejects.toThrow(/forbidden/i);
   });
 
   it("lists automations", async () => {

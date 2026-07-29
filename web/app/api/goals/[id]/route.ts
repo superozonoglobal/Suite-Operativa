@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { updateGoalProgress } from "@/lib/services/goals";
+import { errorResponse } from "@/lib/api/errorResponse";
 import { z } from "zod";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -10,6 +12,11 @@ const updateGoalSchema = z.object({ current: z.number().int() });
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const session = await auth();
   if (!session?.user) {
+    return NextResponse.json({ data: null, meta: {}, errors: [{ message: "Unauthorized" }] }, { status: 401 });
+  }
+
+  const actingUser = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!actingUser) {
     return NextResponse.json({ data: null, meta: {}, errors: [{ message: "Unauthorized" }] }, { status: 401 });
   }
 
@@ -23,6 +30,10 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     );
   }
 
-  const goal = await updateGoalProgress(id, parsed.data.current);
-  return NextResponse.json({ data: goal, meta: {}, errors: [] });
+  try {
+    const goal = await updateGoalProgress(id, parsed.data.current, actingUser);
+    return NextResponse.json({ data: goal, meta: {}, errors: [] });
+  } catch (err) {
+    return errorResponse(err);
+  }
 }

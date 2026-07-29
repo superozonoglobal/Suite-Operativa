@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/app/generated/prisma/client";
+import type { Prisma, User } from "@/app/generated/prisma/client";
 import type { CreateGoalInput } from "@/lib/validation/goal";
+import { ForbiddenError } from "@/lib/errors";
+import { isAtLeastLevel } from "@/lib/authz";
 
 export async function listGoals(filters: { userId?: string; month?: string; status?: string } = {}) {
   const where: Prisma.GoalWhereInput = {};
@@ -36,11 +38,30 @@ export async function createGoal(input: CreateGoalInput, createdByUserId: string
   });
 }
 
-export async function updateGoalProgress(id: string, current: number) {
+function assertCanEditGoal(goal: { userId: string | null }, actingUser: Pick<User, "id" | "level">) {
+  const isOwner = goal.userId === actingUser.id;
+  if (!isOwner && !isAtLeastLevel(actingUser.level, "LIDER")) {
+    throw new ForbiddenError("Forbidden: only the goal's owner or Líder+ can edit this goal");
+  }
+}
+
+export async function updateGoalProgress(
+  id: string,
+  current: number,
+  actingUser: Pick<User, "id" | "level">
+) {
+  const goal = await prisma.goal.findUniqueOrThrow({ where: { id } });
+  assertCanEditGoal(goal, actingUser);
+
   return prisma.goal.update({ where: { id }, data: { current } });
 }
 
-export async function toggleChecklistItem(itemId: string) {
-  const item = await prisma.goalChecklistItem.findUniqueOrThrow({ where: { id: itemId } });
+export async function toggleChecklistItem(itemId: string, actingUser: Pick<User, "id" | "level">) {
+  const item = await prisma.goalChecklistItem.findUniqueOrThrow({
+    where: { id: itemId },
+    include: { goal: true },
+  });
+  assertCanEditGoal(item.goal, actingUser);
+
   return prisma.goalChecklistItem.update({ where: { id: itemId }, data: { done: !item.done } });
 }

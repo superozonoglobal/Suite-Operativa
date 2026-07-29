@@ -51,27 +51,75 @@ describe("goals service", () => {
     expect(items.every((i) => i.done === false)).toBe(true);
   });
 
-  it("updates numeric progress", async () => {
+  it("updates numeric progress when the actor owns the goal", async () => {
     const goal = await createGoal(
       { title: "Progress test", type: "NUMERO", scope: "PERSONAL", target: 10, month: "2026-07" },
       userId
     );
-    const updated = await updateGoalProgress(goal.id, 5);
+    const updated = await updateGoalProgress(goal.id, 5, { id: userId, level: "COLABORADOR" });
     expect(updated.current).toBe(5);
   });
 
-  it("toggles a checklist item", async () => {
+  it("rejects updating another user's PERSONAL goal when the actor is a plain COLABORADOR", async () => {
+    const goal = await createGoal(
+      { title: "Someone else's goal", type: "NUMERO", scope: "PERSONAL", target: 10, month: "2026-07" },
+      userId
+    );
+    const other = await prisma.user.create({
+      data: { email: "goals-test-other@example.com", name: "Other Colaborador", level: "COLABORADOR" },
+    });
+
+    await expect(
+      updateGoalProgress(goal.id, 5, { id: other.id, level: "COLABORADOR" })
+    ).rejects.toThrow(/forbidden/i);
+
+    await prisma.user.delete({ where: { id: other.id } });
+  });
+
+  it("allows a LIDER to update another user's goal progress", async () => {
+    const goal = await createGoal(
+      { title: "Team-managed goal", type: "NUMERO", scope: "PERSONAL", target: 10, month: "2026-07" },
+      userId
+    );
+    const lider = await prisma.user.create({
+      data: { email: "goals-test-lider@example.com", name: "Lider", level: "LIDER" },
+    });
+
+    const updated = await updateGoalProgress(goal.id, 7, { id: lider.id, level: "LIDER" });
+    expect(updated.current).toBe(7);
+
+    await prisma.user.delete({ where: { id: lider.id } });
+  });
+
+  it("toggles a checklist item when the actor owns the goal", async () => {
     const goal = await createGoal(
       { title: "Toggle test", type: "CHECKLIST", scope: "PERSONAL", month: "2026-07", checklist: ["Item A"] },
       userId
     );
     const [item] = await prisma.goalChecklistItem.findMany({ where: { goalId: goal.id } });
 
-    const toggled = await toggleChecklistItem(item.id);
+    const toggled = await toggleChecklistItem(item.id, { id: userId, level: "COLABORADOR" });
     expect(toggled.done).toBe(true);
 
-    const toggledAgain = await toggleChecklistItem(item.id);
+    const toggledAgain = await toggleChecklistItem(item.id, { id: userId, level: "COLABORADOR" });
     expect(toggledAgain.done).toBe(false);
+  });
+
+  it("rejects toggling another user's checklist item when the actor is a plain COLABORADOR", async () => {
+    const goal = await createGoal(
+      { title: "Someone else's checklist", type: "CHECKLIST", scope: "PERSONAL", month: "2026-07", checklist: ["Item A"] },
+      userId
+    );
+    const [item] = await prisma.goalChecklistItem.findMany({ where: { goalId: goal.id } });
+    const other = await prisma.user.create({
+      data: { email: "goals-test-other2@example.com", name: "Other Colaborador", level: "COLABORADOR" },
+    });
+
+    await expect(
+      toggleChecklistItem(item.id, { id: other.id, level: "COLABORADOR" })
+    ).rejects.toThrow(/forbidden/i);
+
+    await prisma.user.delete({ where: { id: other.id } });
   });
 
   it("lists goals filtered by month", async () => {

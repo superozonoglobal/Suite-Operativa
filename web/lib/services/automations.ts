@@ -28,6 +28,14 @@ export async function createAutomation(
   });
 }
 
-export async function setAutomationEnabled(id: string, enabled: boolean) {
+export async function setAutomationEnabled(
+  id: string,
+  enabled: boolean,
+  actingUser: Pick<User, "level">
+) {
+  if (actingUser.level === "COLABORADOR") {
+    throw new ForbiddenError("Forbidden: only Líder and above can toggle automations");
+  }
+
   return prisma.automation.update({ where: { id }, data: { enabled } });
 }

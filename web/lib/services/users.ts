@@ -1,13 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { User } from "@/app/generated/prisma/client";
 import { ForbiddenError } from "@/lib/errors";
-
-const LEVEL_RANK: Record<User["level"], number> = {
-  COLABORADOR: 0,
-  LIDER: 1,
-  PROJECT_MANAGER: 2,
-  SUPERUSER: 3,
-};
+import { LEVEL_RANK } from "@/lib/authz";
 
 export async function listUsers() {
   return prisma.user.findMany({ orderBy: { name: "asc" } });

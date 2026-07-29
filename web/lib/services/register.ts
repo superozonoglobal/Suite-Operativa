@@ -17,6 +17,13 @@ export class AlreadyRegisteredError extends Error {
   }
 }
 
+export class RequiresAdminSetupError extends Error {
+  constructor() {
+    super("This account was pre-assigned an admin role and must be set up by an administrator");
+    this.name = "RequiresAdminSetupError";
+  }
+}
+
 export async function registerUser(input: RegisterInput) {
   const email = input.email.toLowerCase();
 
@@ -36,6 +43,10 @@ export async function registerUser(input: RegisterInput) {
   const superuserEmail = (process.env.SEED_SUPERUSER_EMAIL ?? "").toLowerCase();
 
   if (existing) {
+    if (existing.level === "SUPERUSER" || existing.level === "PROJECT_MANAGER") {
+      throw new RequiresAdminSetupError();
+    }
+
     return prisma.user.update({
       where: { id: existing.id },
       data: { passwordHash },

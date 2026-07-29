@@ -3,7 +3,12 @@
 import { redirect } from "next/navigation";
 import { signIn } from "@/lib/auth";
 import { registerSchema } from "@/lib/validation/register";
-import { registerUser, EmailNotAllowedError, AlreadyRegisteredError } from "@/lib/services/register";
+import {
+  registerUser,
+  EmailNotAllowedError,
+  AlreadyRegisteredError,
+  RequiresAdminSetupError,
+} from "@/lib/services/register";
 
 export async function registerAction(formData: FormData) {
   const parsed = registerSchema.safeParse({
@@ -25,6 +30,9 @@ export async function registerAction(formData: FormData) {
     }
     if (err instanceof AlreadyRegisteredError) {
       redirect("/register?error=already-registered");
+    }
+    if (err instanceof RequiresAdminSetupError) {
+      redirect("/register?error=requires-admin-setup");
     }
     throw err;
   }

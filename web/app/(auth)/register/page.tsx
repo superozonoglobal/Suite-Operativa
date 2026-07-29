@@ -6,6 +6,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid: "Revisá los datos: nombre, email válido y contraseña de al menos 8 caracteres.",
   "not-allowed": "Ese email no está autorizado para registrarse en Suite Operativa.",
   "already-registered": "Ya existe una cuenta con ese email. Iniciá sesión en vez de registrarte.",
+  "requires-admin-setup":
+    "Esta cuenta ya tiene un rol de administrador asignado y debe ser activada por un superusuario. Contactalo directamente.",
 };
 
 export default async function RegisterPage({

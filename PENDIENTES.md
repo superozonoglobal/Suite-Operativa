@@ -37,12 +37,210 @@ Corre local en `http://localhost:3000` (`cd web && npm run dev`).
       veces), y cero índices en la base de datos. Los 4 arreglados y
       verificados — 73/73 tests, typecheck y build limpios. Detalle de cada
       fix en el reporte de revisión (sección "FIXED").
-- [ ] **13 hallazgos HIGH todavía abiertos** (ver el reporte de revisión):
-      sesión de usuario borrado sigue válida 30 días, allowlist de
-      Configuración sigue sin leerse nunca, IDOR en metas/tareas/automatizaciones,
-      sin rate limiting en login, migración RoleTag DIRECTOR→DEVELOPER frágil,
-      `npm run lint` en rojo, y más. No se tocaron en esta pasada — el usuario
-      eligió arreglar solo los críticos por ahora.
+- [~] **13 hallazgos HIGH — EN CURSO (2026-07-29, misma sesión que los 4
+      críticos).** El usuario pidió arreglar los 13, con TDD, uno por uno, en
+      el orden del reporte (`docs/hydraia/reviews/2026-07-29-phase5-code-review.md`,
+      sección HIGH). **Metodología: para cada uno, escribir primero un test que
+      falle (RED), confirmarlo corriendo `npx vitest run <archivo>`, implementar
+      el fix mínimo, confirmar GREEN, correr `npx tsc --noEmit` y la suite
+      completa (`npx vitest run`), y recién ahí pasar al siguiente.** No hacer
+      commit hasta terminar todos (o hasta que el usuario lo pida) — reusar el
+      mismo patrón de commit que los críticos (ver `git log` commit
+      `5118d2f` como ejemplo de mensaje).
+
+  Estado exacto por ítem (actualizar esta lista a medida que se avanza,
+  marcando `[x]` y agregando una línea de qué se hizo, igual que abajo):
+
+  - [x] **H4 (fix register account-takeover)** — hecho. Nueva clase
+        `RequiresAdminSetupError` en `web/lib/services/register.ts`: si
+        `existing.level` es `SUPERUSER` o `PROJECT_MANAGER`, rechaza el
+        self-claim (antes de eso solo bloqueaba con contraseña ya puesta).
+        Cableado en `web/lib/actions/register.ts` (nuevo redirect
+        `?error=requires-admin-setup`) y `web/app/(auth)/register/page.tsx`
+        (nuevo mensaje). 2 tests nuevos en
+        `web/tests/integration/services/register.test.ts`. Nota: el "bootstrap
+        race" de `SEED_SUPERUSER_EMAIL` (quien registre ese email primero en
+        prod gana SUPERUSER) es una limitación de diseño de ADR-0009, no se
+        arregló con código — mitigación real es operativa (registrar esa
+        cuenta apenas se despliegue, antes de avisarle al equipo la URL).
+
+  - [x] **H1 (invalidar sesión de usuario borrado)** — hecho. Extraje la
+        lógica del callback `jwt` a una función pura testeable:
+        `web/lib/auth/resolveJwtToken.ts` (nuevo archivo) — si `dbUser` es
+        `null`, devuelve `null` (Auth.js invalida la sesión), si no,
+        actualiza `level`/`roleTag`. `web/lib/auth.ts` ahora la usa. También
+        agregué `maxAge: 12 * 60 * 60` (12h) a `session: { strategy: "jwt" }`
+        en el mismo archivo (antes no tenía límite, default de Auth.js es 30
+        días). Tests nuevos en
+        `web/tests/unit/lib/resolveJwtToken.test.ts`.
+
+  - [ ] **H9 (proxy.ts no protege nada) — SIGUIENTE PASO, empezar por acá.**
+        Archivo: `web/lib/auth.ts` (agregar `callbacks.authorized`),
+        `web/app/page.tsx` (hoy es el scaffold de create-next-app sin tocar,
+        público). Plan: agregar `authorized: ({ auth }) => !!auth?.user` al
+        objeto `callbacks` de `NextAuth({...})` en `lib/auth.ts`. OJO: esto
+        haría que el proxy bloquee TODO excepto lo que ya excluye el
+        `matcher` de `web/proxy.ts` (revisar ese matcher — hoy excluye
+        `_next/static|_next/image|favicon.ico` pero NO excluye `/signin`,
+        `/register`, `/api/auth` explícitamente por matcher; ver cómo hace
+        NextAuth el chequeo internamente — puede que el `authorized` callback
+        deba dejar pasar esas rutas explícitamente comparando
+        `req.nextUrl.pathname`, revisar `node_modules/next-auth/lib/index.js`
+        línea ~146 para la firma exacta del callback antes de escribirlo).
+        Reemplazar `web/app/page.tsx` (contenido default de create-next-app)
+        por un `redirect("/dashboard")` de `next/navigation` — el layout de
+        `(app)` ya redirige a `/signin` si no hay sesión. Difícil de testear
+        con test unitario puro (es middleware); si no se puede escribir un
+        test automatizado razonable, documentar explícitamente que se
+        verificó a mano (`npm run build` + revisar que `Proxy (Middleware)`
+        sigue apareciendo en la salida) en vez de forzar TDD con mocks.
+
+  - [ ] **H2 (allowlist de Configuración nunca se lee)** — archivo
+        `web/lib/authAllowList.ts`: `isEmailAllowed` hoy es síncrona y solo
+        lee `process.env`. Hay que hacerla `async` y que también consulte
+        `getOrgSettings()` (`web/lib/services/orgSettings.ts`) — el email es
+        permitido si coincide con el env var O con `OrgSettings.allowedEmailDomain`
+        O está en `OrgSettings.allowedEmails`. **Esto es un cambio de firma
+        que rompe cadena de llamadas**: `isEmailAllowed` se llama desde
+        `lib/auth.ts` (`signIn` callback, ya es async, fácil) y desde
+        `lib/services/register.ts` (`registerUser`, ya es async, fácil). Hay
+        que actualizar `web/tests/unit/lib/authAllowList.test.ts` a async
+        (`await isEmailAllowed(...)`) y mockear/crear un `OrgSettings` de
+        prueba en la DB para los tests nuevos. Revisar
+        `web/tests/integration/services/orgSettings.test.ts` para el patrón
+        de crear/limpiar `OrgSettings` en tests.
+
+  - [ ] **H5 (rate limiting + timing oracle en login)** — archivo
+        `web/lib/auth.ts` función `authorize`. Timing oracle: hoy hace
+        `return null` ANTES de `bcrypt.compare` si el usuario no existe
+        (línea ~20, `if (!user?.passwordHash) return null;`) — comparar
+        contra un hash dummy siempre (ej. `await bcrypt.compare(password,
+        user?.passwordHash ?? DUMMY_HASH)` donde `DUMMY_HASH` es una
+        constante bcrypt precalculada) para que el tiempo de respuesta no
+        delate si el email existe. Rate limiting: no hay ninguna librería
+        instalada (`express-rate-limit` no aplica a Next.js Route Handlers;
+        buscar algo simple sin dependencias nuevas si es posible, ej. un
+        Map en memoria con timestamp+contador por IP/email en
+        `lib/auth.ts` o un nuevo `lib/rateLimit.ts`, ya que no hay Redis/Upstash
+        configurado — NO instalar un servicio externo sin preguntarle al
+        usuario primero). Testear la función de rate-limit como unidad pura
+        (igual que `resolveJwtToken`), no vía HTTP real.
+
+  - [ ] **H6 (migración RoleTag DIRECTOR→DEVELOPER frágil)** — archivo
+        `web/prisma/migrations/20260728214531_rename_roletag_director_to_developer/migration.sql`.
+        **NO editar una migración ya aplicada/committeada en `main`** (mala
+        práctica de Prisma) — en cambio, crear una migración NUEVA que sea
+        un no-op seguro si ya no quedan filas `DIRECTOR` (ya no deberían
+        existir en esta DB, el bug es solo para el caso de un restore/DB
+        nueva) — o, más simple: agregar una migración nueva con
+        `UPDATE "Task" SET "roleTag"='DEVELOPER' WHERE "roleTag"='DIRECTOR';
+        UPDATE "User" SET "roleTag"='DEVELOPER' WHERE "roleTag"='DIRECTOR';`
+        ANTES de donde se necesite, pero como el enum ya no tiene el valor
+        `DIRECTOR` en el schema actual, esto requiere pensarlo bien: la
+        migración rota ya se aplicó en este entorno. Lo más seguro es
+        documentar esto como riesgo conocido para cualquier DB que NO sea
+        esta (Neon nueva, restore de backup viejo) y agregar el `UPDATE`
+        faltante directamente en el archivo de migración histórico SOLO SI
+        Prisma lo permite sin romper el hash de la migración ya aplicada
+        localmente (revisar `prisma/migrations/migration_lock.toml` y si
+        hace falta `prisma migrate resolve`). Pedirle confirmación al usuario
+        antes de tocar una migración ya aplicada — alternativa más segura:
+        dejarlo documentado en el reporte y en ADR nuevo, no como código.
+
+  - [ ] **H7 (`PATCH /api/tasks/[id]` 500 con `assigneeId`)** — archivo
+        `web/app/api/tasks/[id]/route.ts` (líneas ~49-56 en la revisión
+        original). El bug: `const { status: _status, ...rest } = parsed.data;
+        const data: Prisma.TaskUpdateInput = { ...rest };` — `assigneeId` no
+        existe en `Prisma.TaskUpdateInput` (solo en
+        `Prisma.TaskUncheckedUpdateInput`). Fix: mapear `assigneeId` a la
+        forma de relación (`assignee: { connect: { id: assigneeId } }`) o
+        cambiar el tipo de `data` a `Prisma.TaskUncheckedUpdateInput`. Escribir
+        primero un test que haga PATCH con `assigneeId` y hoy falle con 500
+        (test de ruta, no de servicio — no hay tests de rutas todavía en
+        este repo, sería el primero; revisar cómo invocar un Route Handler
+        de Next.js directamente en Vitest, ej. importando el handler y
+        llamando `PATCH(new NextRequest(...), { params: ... })`).
+
+  - [ ] **H8 (`npm run lint` en rojo)** — archivo
+        `web/components/layout/NotificationBell.tsx` línea ~18. Error:
+        `react-hooks/set-state-in-effect` porque `fetchUnread()` llama
+        `setNotifications` sincrónicamente en el cuerpo del efecto. Fix:
+        mover la llamada inicial dentro de una función async separada
+        invocada desde el efecto (patrón estándar: `useEffect(() => { let
+        active = true; async function load() { const data = await
+        fetchUnread(); if (active) setNotifications(data); } load(); return
+        () => { active = false; }; }, [])`), y agregar `try/catch` (esto
+        también resuelve parcialmente el M6 del reporte, fuga de errores no
+        manejados). No hay test de lint per se — correr `npx eslint .` y
+        confirmar 0 errores.
+
+  - [ ] **H13 (Prisma leakea errores crudos)** — afecta varias rutas:
+        `web/app/api/requisitions/[id]/route.ts`,
+        `web/app/api/projects/route.ts`, `web/app/api/automations/route.ts`,
+        `web/app/api/users/[id]/route.ts` (buscar
+        `err instanceof Error ? err.message : ...` con `grep -rn "err instanceof Error ? err.message" web/app/api`).
+        Fix: crear una clase de error propia (ej. `ForbiddenError` en un
+        archivo nuevo `web/lib/errors.ts`) que los servicios lancen
+        explícitamente para casos de autorización, y en cada route handler
+        distinguir `err instanceof ForbiddenError` (devolver `err.message`,
+        es seguro) de cualquier otro error (loguear con `console.error` y
+        devolver un mensaje genérico "Internal error" con status 500, nunca
+        `err.message` crudo de Prisma). Testear con un test de servicio que
+        verifique que un error de autorización sigue siendo legible pero uno
+        de Prisma (ej. `findUniqueOrThrow` fallando) no se propaga tal cual.
+
+  - [ ] **H3 + H11 (IDOR en metas/automatizaciones/tareas)** — el más grande
+        de los que quedan. Archivos: `web/lib/services/goals.ts`
+        (`updateGoalProgress`, `toggleChecklistItem` — sin chequeo de dueño),
+        `web/lib/services/automations.ts` (`setAutomationEnabled` — sin
+        chequeo de nivel, a diferencia de `createAutomation` que sí lo
+        tiene), `web/app/api/tasks/[id]/route.ts` (PATCH sin chequeo de
+        ownership/nivel). Plan: cada una de estas funciones debe recibir el
+        `actingUser` (igual que `updateUserRole` ya lo hace) y validar: para
+        `updateGoalProgress`/`toggleChecklistItem`, que el goal sea del
+        propio usuario (`Goal.userId === actingUser.id`) O que el actor sea
+        LIDER+; para `setAutomationEnabled`, que el actor sea LIDER+ (mismo
+        gate que `createAutomation`); para el PATCH de tareas, que el actor
+        sea el `assignee`, el `createdBy`, o LIDER+. Escribir un test por
+        función que falle hoy (un COLABORADOR ajeno a la meta/tarea puede
+        editarla) antes de tocar código.
+
+  - [ ] **H10 (construir UI para crear Proyecto/Producto/Tarea)** — el
+        usuario confirmó que SÍ quiere esto en esta pasada (no es solo
+        seguridad, es una pantalla nueva). `POST /api/projects` y
+        `/api/tasks` ya existen y funcionan (tienen tests de servicio) pero
+        ningún componente los llama. `createProduct` en
+        `web/lib/services/projects.ts` no tiene ni siquiera route handler
+        (crear `web/app/api/products/route.ts`, mismo patrón que
+        `web/app/api/projects/route.ts`). Plan: agregar un formulario/modal
+        simple en `web/app/(app)/proyectos/page.tsx` (hoy es solo lectura)
+        con un botón "Nuevo proyecto" que haga POST a `/api/projects`, y
+        dentro de cada proyecto un botón "Nuevo producto"/"Nueva tarea".
+        Revisar `web/components/requisiciones/RequisitionsView.tsx` como
+        ejemplo de un formulario ya existente en este repo (modal simple con
+        `useState` + `fetch`) para mantener el mismo estilo visual y patrón
+        de código. IMPORTANTE: seguir el hallazgo MEDIUM del reporte y SÍ
+        chequear `res.ok` antes de cerrar el formulario (no repetir el
+        patrón roto que tienen los demás componentes).
+
+  - [ ] **H12 (flujo de aprobación de Metas, hoy 0% siempre)** — ninguna
+        pantalla pone `Goal.status = "APROBADA"`. Plan: agregar un botón
+        "Aprobar" en `web/components/metas/GoalCard.tsx` (visible solo para
+        LIDER+, mismo patrón de `canEdit` que ya usan otros componentes) que
+        haga PATCH a `/api/goals/[id]` con `{ status: "APROBADA" }` — revisar
+        si la ruta y el servicio (`web/lib/services/goals.ts`,
+        `web/app/api/goals/[id]/route.ts`) ya aceptan cambiar `status` o si
+        hay que agregarlo al schema de validación
+        (`web/lib/validation/goal.ts`) y al servicio. Testear con un test de
+        servicio que cree una meta, la apruebe, y verifique que
+        `lib/services/analytics.ts` (`goalsCompletionAvg`) ahora sí cuenta
+        algo distinto de 0.
+
+  Después de cada ítem: correr `npx tsc --noEmit` y `npx vitest run`
+  completos (no solo el archivo tocado) antes de pasar al siguiente, y
+  actualizar el checkbox de este archivo (`[ ]` → `[x]`) con una línea de
+  resumen igual a las de arriba, para que el progreso sea visible aunque se
+  corte la sesión a mitad de camino.
 - [ ] **Probar la app entera a mano en el navegador** (registrarse → entrar →
       recorrer los 12 módulos). Nunca se hizo un click-through real completo.
       Recomendado hacerlo después de cerrar al menos los HIGH de autorización

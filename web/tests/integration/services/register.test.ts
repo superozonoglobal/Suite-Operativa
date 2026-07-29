@@ -1,6 +1,11 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { registerUser, EmailNotAllowedError, AlreadyRegisteredError } from "@/lib/services/register";
+import {
+  registerUser,
+  EmailNotAllowedError,
+  AlreadyRegisteredError,
+  RequiresAdminSetupError,
+} from "@/lib/services/register";
 
 const TEST_EMAILS = [
   "colaborador@superozonoglobal.com",
@@ -8,6 +13,8 @@ const TEST_EMAILS = [
   "outsider@gmail.com",
   "existing-user-no-password@superozonoglobal.com",
   "role-test@superozonoglobal.com",
+  "passwordless-superuser@superozonoglobal.com",
+  "passwordless-pm@superozonoglobal.com",
 ];
 
 describe("registerUser", () => {
@@ -85,6 +92,42 @@ describe("registerUser", () => {
       roleTag: "DISENADOR",
     });
     expect(user.roleTag).toBe("DISENADOR");
+  });
+
+  it("rejects claiming a passwordless SUPERUSER row via self-registration", async () => {
+    await prisma.user.create({
+      data: {
+        email: "passwordless-superuser@superozonoglobal.com",
+        name: "Pre-assigned Superuser",
+        level: "SUPERUSER",
+      },
+    });
+
+    await expect(
+      registerUser({
+        name: "Attacker",
+        email: "passwordless-superuser@superozonoglobal.com",
+        password: "password123",
+      })
+    ).rejects.toThrow(RequiresAdminSetupError);
+  });
+
+  it("rejects claiming a passwordless PROJECT_MANAGER row via self-registration", async () => {
+    await prisma.user.create({
+      data: {
+        email: "passwordless-pm@superozonoglobal.com",
+        name: "Pre-assigned PM",
+        level: "PROJECT_MANAGER",
+      },
+    });
+
+    await expect(
+      registerUser({
+        name: "Attacker",
+        email: "passwordless-pm@superozonoglobal.com",
+        password: "password123",
+      })
+    ).rejects.toThrow(RequiresAdminSetupError);
   });
 
   it("leaves roleTag null when not provided", async () => {

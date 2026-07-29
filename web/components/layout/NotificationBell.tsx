@@ -8,16 +8,26 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
-  async function fetchUnread() {
-    const res = await fetch("/api/notifications");
-    const json = await res.json();
-    setNotifications(json.data ?? []);
-  }
-
   useEffect(() => {
+    let active = true;
+
+    async function fetchUnread() {
+      try {
+        const res = await fetch("/api/notifications");
+        const json = await res.json();
+        if (active) setNotifications(json.data ?? []);
+      } catch {
+        // Network/parse failure: leave the previous list in place rather
+        // than clearing it, and try again on the next 30s tick.
+      }
+    }
+
     fetchUnread();
     const interval = setInterval(fetchUnread, 30_000);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
   async function handleOpen() {

@@ -74,59 +74,75 @@ Corre local en `http://localhost:3000` (`cd web && npm run dev`).
         días). Tests nuevos en
         `web/tests/unit/lib/resolveJwtToken.test.ts`.
 
-  - [ ] **H9 (proxy.ts no protege nada) — SIGUIENTE PASO, empezar por acá.**
-        Archivo: `web/lib/auth.ts` (agregar `callbacks.authorized`),
-        `web/app/page.tsx` (hoy es el scaffold de create-next-app sin tocar,
-        público). Plan: agregar `authorized: ({ auth }) => !!auth?.user` al
-        objeto `callbacks` de `NextAuth({...})` en `lib/auth.ts`. OJO: esto
-        haría que el proxy bloquee TODO excepto lo que ya excluye el
-        `matcher` de `web/proxy.ts` (revisar ese matcher — hoy excluye
-        `_next/static|_next/image|favicon.ico` pero NO excluye `/signin`,
-        `/register`, `/api/auth` explícitamente por matcher; ver cómo hace
-        NextAuth el chequeo internamente — puede que el `authorized` callback
-        deba dejar pasar esas rutas explícitamente comparando
-        `req.nextUrl.pathname`, revisar `node_modules/next-auth/lib/index.js`
-        línea ~146 para la firma exacta del callback antes de escribirlo).
-        Reemplazar `web/app/page.tsx` (contenido default de create-next-app)
-        por un `redirect("/dashboard")` de `next/navigation` — el layout de
-        `(app)` ya redirige a `/signin` si no hay sesión. Difícil de testear
-        con test unitario puro (es middleware); si no se puede escribir un
-        test automatizado razonable, documentar explícitamente que se
-        verificó a mano (`npm run build` + revisar que `Proxy (Middleware)`
-        sigue apareciendo en la salida) en vez de forzar TDD con mocks.
+  - [x] **H9 (proxy.ts no protege nada)** — hecho. Agregué
+        `callbacks.authorized` a `web/lib/auth.ts`, delegando a una función
+        pura testeable `web/lib/auth/isAuthorized.ts` (`!!auth?.user`).
+        Agregué `pages: { signIn: "/signin" }` al mismo config de NextAuth —
+        sin esto, el redirect del `authorized` callback cuando devuelve
+        `false` iba a `/api/auth/signin` (la página genérica de Auth.js) en
+        vez de la página custom de la app. `web/proxy.ts` no se tocó, su
+        `matcher` ya excluía `signin`/`register`/`api/auth`/estáticos.
+        `web/app/page.tsx` ahora es un `redirect("/dashboard")` en vez del
+        scaffold de create-next-app. Verificado con `npm run build` (sigue
+        apareciendo `ƒ Proxy (Middleware)` en la salida) — no se escribió
+        test automatizado para el proxy en sí (es middleware, difícil de
+        testear sin mockear todo Next.js), pero sí para `isAuthorized`
+        (`web/tests/unit/lib/isAuthorized.test.ts`).
 
-  - [ ] **H2 (allowlist de Configuración nunca se lee)** — archivo
-        `web/lib/authAllowList.ts`: `isEmailAllowed` hoy es síncrona y solo
-        lee `process.env`. Hay que hacerla `async` y que también consulte
-        `getOrgSettings()` (`web/lib/services/orgSettings.ts`) — el email es
-        permitido si coincide con el env var O con `OrgSettings.allowedEmailDomain`
-        O está en `OrgSettings.allowedEmails`. **Esto es un cambio de firma
-        que rompe cadena de llamadas**: `isEmailAllowed` se llama desde
-        `lib/auth.ts` (`signIn` callback, ya es async, fácil) y desde
-        `lib/services/register.ts` (`registerUser`, ya es async, fácil). Hay
-        que actualizar `web/tests/unit/lib/authAllowList.test.ts` a async
-        (`await isEmailAllowed(...)`) y mockear/crear un `OrgSettings` de
-        prueba en la DB para los tests nuevos. Revisar
-        `web/tests/integration/services/orgSettings.test.ts` para el patrón
-        de crear/limpiar `OrgSettings` en tests.
+  - [x] **H2 (allowlist de Configuración nunca se lee)** — hecho.
+        `web/lib/authAllowList.ts`: `isEmailAllowed` ahora es `async` y,
+        además de los env vars, consulta `getOrgSettings()`
+        (`web/lib/services/orgSettings.ts`) — permite si coincide con
+        `OrgSettings.allowedEmailDomain` O está en `OrgSettings.allowedEmails`
+        (case-insensitive). Actualizados los 2 call sites: `lib/auth.ts`
+        (`signIn` callback, ya era async, sin cambios de firma) y
+        `lib/services/register.ts` (agregado `await` — antes
+        `if (!isEmailAllowed(email))` evaluaba `!Promise` que siempre es
+        `false`, hubiera sido un bug si no se agregaba el `await`). Tests
+        nuevos en `web/tests/unit/lib/authAllowList.test.ts` (ahora
+        integration-style, usa la DB real vía `prisma.orgSettings`).
 
-  - [ ] **H5 (rate limiting + timing oracle en login)** — archivo
-        `web/lib/auth.ts` función `authorize`. Timing oracle: hoy hace
-        `return null` ANTES de `bcrypt.compare` si el usuario no existe
-        (línea ~20, `if (!user?.passwordHash) return null;`) — comparar
-        contra un hash dummy siempre (ej. `await bcrypt.compare(password,
-        user?.passwordHash ?? DUMMY_HASH)` donde `DUMMY_HASH` es una
-        constante bcrypt precalculada) para que el tiempo de respuesta no
-        delate si el email existe. Rate limiting: no hay ninguna librería
-        instalada (`express-rate-limit` no aplica a Next.js Route Handlers;
-        buscar algo simple sin dependencias nuevas si es posible, ej. un
-        Map en memoria con timestamp+contador por IP/email en
-        `lib/auth.ts` o un nuevo `lib/rateLimit.ts`, ya que no hay Redis/Upstash
-        configurado — NO instalar un servicio externo sin preguntarle al
-        usuario primero). Testear la función de rate-limit como unidad pura
-        (igual que `resolveJwtToken`), no vía HTTP real.
+  - [x] **H5 (rate limiting + timing oracle en login)** — hecho. Extraje
+        `authorize` a `web/lib/auth/authorizeCredentials.ts`: el timing
+        oracle se cerró comparando SIEMPRE con bcrypt (contra un
+        `DUMMY_HASH` precalculado con `bcrypt.hashSync` si no hay usuario o
+        no tiene `passwordHash`, en vez de hacer `return null` antes de
+        llamar a `bcrypt.compare`). Rate limiting: `web/lib/rateLimit.ts`,
+        clase `RateLimiter` genérica (in-memory, Map por key) + instancia
+        compartida `loginRateLimiter` (5 intentos / 60s por email). **Nota
+        documentada en el propio código**: en Vercel serverless esto es
+        mitigación best-effort, no garantía dura (cada instancia/cold start
+        tiene su propio Map) — no se instaló Upstash/Redis sin preguntarle
+        antes al usuario. Tests en `web/tests/unit/lib/rateLimit.test.ts` y
+        `web/tests/integration/services/authorizeCredentials.test.ts`.
 
-  - [ ] **H6 (migración RoleTag DIRECTOR→DEVELOPER frágil)** — archivo
+  Progreso commiteado y pusheado a `main` en 2 commits:
+  `e7f868c` (H1+H4) y `955399b` (H9+H2+H5). 93/93 tests, typecheck y build
+  limpios a esta altura.
+
+  - [x] **H6 (migración RoleTag DIRECTOR→DEVELOPER frágil) — decisión: NO
+        tocar código, solo documentar.** Editar una migración de Prisma ya
+        aplicada (`prisma/migrations/20260728214531_.../migration.sql`)
+        cambia su checksum y rompe `prisma migrate deploy`/`dev` para
+        cualquiera que ya la tenga aplicada (hace falta `prisma migrate
+        resolve` a mano) — es una operación de más riesgo que el bug que
+        arregla. Además el riesgo real es bajo para ESTE despliegue: Suite
+        Operativa arranca con una base Neon nueva y vacía (ADR-0006, sin
+        importar datos viejos), así que cuando `prisma migrate deploy` corra
+        todas las migraciones en orden sobre una DB vacía, no puede haber
+        ninguna fila con `roleTag='DIRECTOR'` en el momento en que esa
+        migración se ejecuta — el escenario de fallo real es solo restaurar
+        un backup viejo (de antes de esta migración) en una base nueva.
+        Queda documentado como riesgo conocido en el reporte de revisión y
+        acá: **si alguna vez se restaura un backup anterior al 2026-07-28
+        tarde, correr a mano
+        `UPDATE "User" SET "roleTag"='DEVELOPER' WHERE "roleTag"='DIRECTOR';
+        UPDATE "Task" SET "roleTag"='DEVELOPER' WHERE "roleTag"='DIRECTOR';`
+        ANTES de aplicar las migraciones sobre esa base.** No se tocó ningún
+        archivo.
+
+  - [ ] **H7 (`PATCH /api/tasks/[id]` 500 con `assigneeId`) — SIGUIENTE PASO,
+        empezar por acá.** Archivo
         `web/prisma/migrations/20260728214531_rename_roletag_director_to_developer/migration.sql`.
         **NO editar una migración ya aplicada/committeada en `main`** (mala
         práctica de Prisma) — en cambio, crear una migración NUEVA que sea

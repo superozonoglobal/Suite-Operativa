@@ -48,7 +48,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   const { status: _status, ...rest } = parsed.data;
   void _status;
-  const data: Prisma.TaskUpdateInput = { ...rest };
+  const data: Prisma.TaskUncheckedUpdateInput = { ...rest };
   if (rest.dueDate !== undefined) {
     data.dueDate = rest.dueDate ? new Date(rest.dueDate) : null;
   }

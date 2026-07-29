@@ -1,18 +1,25 @@
 import { auth } from "@/lib/auth";
 import { listProjectsWithProgress } from "@/lib/services/projects";
 import { Topbar } from "@/components/layout/Topbar";
+import { NewProjectForm } from "@/components/proyectos/NewProjectForm";
+import { NewProductForm } from "@/components/proyectos/NewProductForm";
+import { NewTaskForm } from "@/components/proyectos/NewTaskForm";
 
 export default async function ProyectosPage() {
   const session = await auth();
   const projects = await listProjectsWithProgress();
+  const canEdit = session?.user.level !== "COLABORADOR";
 
   return (
     <>
       <Topbar title="Proyectos" roleTag={session?.user.roleTag} />
       <main className="p-6">
-        <p className="mb-6 text-sm text-[var(--text-muted)]">
-          SUPER OZONO como marca sombrilla — cada proyecto agrupa uno o varios productos.
-        </p>
+        <div className="mb-6 flex items-center justify-between">
+          <p className="text-sm text-[var(--text-muted)]">
+            SUPER OZONO como marca sombrilla — cada proyecto agrupa uno o varios productos.
+          </p>
+          {canEdit && <NewProjectForm />}
+        </div>
 
         <div className="flex flex-col gap-4">
           {projects.map((project) => {
@@ -49,9 +56,18 @@ export default async function ProyectosPage() {
                       <p className="text-xs text-[var(--text-muted)]">
                         {product.doneCount}/{product.taskCount} listas
                       </p>
+                      <div className="mt-2">
+                        <NewTaskForm projectId={project.id} productId={product.id} />
+                      </div>
                     </div>
                   ))}
                 </div>
+
+                {canEdit && (
+                  <div className="mt-3">
+                    <NewProductForm projectId={project.id} />
+                  </div>
+                )}
 
                 <div className="mt-4 border-t border-[var(--border-soft)] pt-3">
                   <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">

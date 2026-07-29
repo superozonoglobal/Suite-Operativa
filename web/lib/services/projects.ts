@@ -45,7 +45,11 @@ export async function createProject(input: CreateProjectInput, actingUser: Pick<
   });
 }
 
-export async function createProduct(input: CreateProductInput) {
+export async function createProduct(input: CreateProductInput, actingUser: Pick<User, "level">) {
+  if (actingUser.level === "COLABORADOR") {
+    throw new ForbiddenError("Forbidden: only Líder and above can create products");
+  }
+
   return prisma.product.create({
     data: { name: input.name, projectId: input.projectId },
   });

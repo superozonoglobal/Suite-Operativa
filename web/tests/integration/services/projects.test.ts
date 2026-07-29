@@ -38,8 +38,14 @@ describe("projects service", () => {
     expect(project.name).toBe("Café Nublado");
   });
 
+  it("rejects product creation by a COLABORADOR-level actor", async () => {
+    await expect(
+      createProduct({ name: "Should Fail" , projectId }, { level: "COLABORADOR" })
+    ).rejects.toThrow(/permission|forbidden/i);
+  });
+
   it("computes per-product progress and distinct team members from task assignees", async () => {
-    const product = await createProduct({ name: "Campaña de Lanzamiento", projectId });
+    const product = await createProduct({ name: "Campaña de Lanzamiento", projectId }, { level: "LIDER" });
 
     await prisma.task.create({
       data: { title: "Task 1", projectId, productId: product.id, assigneeId: colaboradorId, status: "DONE", createdById: userId },

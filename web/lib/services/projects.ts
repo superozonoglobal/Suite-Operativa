@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { User } from "@/app/generated/prisma/client";
 import type { CreateProjectInput, CreateProductInput } from "@/lib/validation/project";
+import { ForbiddenError } from "@/lib/errors";
 
 export async function listProjectsWithProgress() {
   const projects = await prisma.project.findMany({
@@ -36,7 +37,7 @@ export async function listProjectsWithProgress() {
 
 export async function createProject(input: CreateProjectInput, actingUser: Pick<User, "level">) {
   if (actingUser.level === "COLABORADOR") {
-    throw new Error("Forbidden: only Líder and above can create projects");
+    throw new ForbiddenError("Forbidden: only Líder and above can create projects");
   }
 
   return prisma.project.create({

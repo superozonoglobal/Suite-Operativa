@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { User } from "@/app/generated/prisma/client";
+import { ForbiddenError } from "@/lib/errors";
 
 const LEVEL_RANK: Record<User["level"], number> = {
   COLABORADOR: 0,
@@ -18,21 +19,21 @@ export async function updateUserRole(
   actingUser: Pick<User, "id" | "level">
 ) {
   if (actingUser.level === "COLABORADOR") {
-    throw new Error("Forbidden: only Líder and above can change roles");
+    throw new ForbiddenError("Forbidden: only Líder and above can change roles");
   }
 
   if (changes.level) {
     if (targetId === actingUser.id) {
-      throw new Error("Forbidden: cannot change your own level");
+      throw new ForbiddenError("Forbidden: cannot change your own level");
     }
 
     if (LEVEL_RANK[changes.level] > LEVEL_RANK[actingUser.level]) {
-      throw new Error("Forbidden: cannot grant a level higher than your own");
+      throw new ForbiddenError("Forbidden: cannot grant a level higher than your own");
     }
 
     const target = await prisma.user.findUniqueOrThrow({ where: { id: targetId } });
     if (LEVEL_RANK[target.level] >= LEVEL_RANK[actingUser.level]) {
-      throw new Error("Forbidden: cannot change the level of a user at or above your own rank");
+      throw new ForbiddenError("Forbidden: cannot change the level of a user at or above your own rank");
     }
   }
 

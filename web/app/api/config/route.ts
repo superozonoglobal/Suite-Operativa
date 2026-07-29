@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getOrgSettings, updateOrgSettings } from "@/lib/services/orgSettings";
 import { z } from "zod";
+import { errorResponse } from "@/lib/api/errorResponse";
 
 const updateConfigSchema = z.object({
   allowedEmailDomain: z.string().optional(),
@@ -37,7 +38,6 @@ export async function PATCH(req: NextRequest) {
     const settings = await updateOrgSettings(parsed.data, { level: session.user.level ?? "" });
     return NextResponse.json({ data: settings, meta: {}, errors: [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Forbidden";
-    return NextResponse.json({ data: null, meta: {}, errors: [{ message }] }, { status: 403 });
+    return errorResponse(err);
   }
 }

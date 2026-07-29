@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { respondToRequisition } from "@/lib/services/requisitions";
 import { respondRequisitionSchema } from "@/lib/validation/requisition";
+import { errorResponse } from "@/lib/api/errorResponse";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -25,7 +26,6 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     const requisition = await respondToRequisition(id, parsed.data, session.user.id);
     return NextResponse.json({ data: requisition, meta: {}, errors: [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Forbidden";
-    return NextResponse.json({ data: null, meta: {}, errors: [{ message }] }, { status: 403 });
+    return errorResponse(err);
   }
 }

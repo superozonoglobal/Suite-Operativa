@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { listProjectsWithProgress, createProject } from "@/lib/services/projects";
 import { createProjectSchema } from "@/lib/validation/project";
+import { errorResponse } from "@/lib/api/errorResponse";
 
 export async function GET() {
   const session = await auth();
@@ -38,7 +39,6 @@ export async function POST(req: NextRequest) {
     const project = await createProject(parsed.data, actingUser);
     return NextResponse.json({ data: project, meta: {}, errors: [] }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Forbidden";
-    return NextResponse.json({ data: null, meta: {}, errors: [{ message }] }, { status: 403 });
+    return errorResponse(err);
   }
 }

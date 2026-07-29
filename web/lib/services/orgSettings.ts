@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ForbiddenError } from "@/lib/errors";
 
 export async function getOrgSettings() {
   const existing = await prisma.orgSettings.findFirst();
@@ -11,7 +12,7 @@ export async function updateOrgSettings(
   actingUser: { level: string }
 ) {
   if (actingUser.level !== "SUPERUSER") {
-    throw new Error("Forbidden: only Superusuario can change these settings");
+    throw new ForbiddenError("Forbidden: only Superusuario can change these settings");
   }
 
   const settings = await getOrgSettings();

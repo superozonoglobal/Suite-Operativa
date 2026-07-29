@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateUserRole } from "@/lib/services/users";
 import { updateUserRoleSchema } from "@/lib/validation/user";
+import { errorResponse } from "@/lib/api/errorResponse";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -31,7 +32,6 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     const user = await updateUserRole(id, parsed.data, actingUser);
     return NextResponse.json({ data: user, meta: {}, errors: [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Forbidden";
-    return NextResponse.json({ data: null, meta: {}, errors: [{ message }] }, { status: 403 });
+    return errorResponse(err);
   }
 }

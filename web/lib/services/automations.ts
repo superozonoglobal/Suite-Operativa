@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma, User } from "@/app/generated/prisma/client";
 import type { CreateAutomationInput } from "@/lib/validation/automation";
+import { ForbiddenError } from "@/lib/errors";
 
 export async function listAutomations() {
   const items = await prisma.automation.findMany({ orderBy: { createdAt: "desc" } });
@@ -12,7 +13,7 @@ export async function createAutomation(
   actingUser: Pick<User, "id" | "level">
 ) {
   if (actingUser.level === "COLABORADOR") {
-    throw new Error("Forbidden: only Líder and above can create automations");
+    throw new ForbiddenError("Forbidden: only Líder and above can create automations");
   }
 
   return prisma.automation.create({

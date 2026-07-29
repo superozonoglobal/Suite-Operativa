@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { listAutomations, createAutomation } from "@/lib/services/automations";
 import { createAutomationSchema } from "@/lib/validation/automation";
+import { errorResponse } from "@/lib/api/errorResponse";
 
 export async function GET() {
   const session = await auth();
@@ -38,7 +39,6 @@ export async function POST(req: NextRequest) {
     const automation = await createAutomation(parsed.data, actingUser);
     return NextResponse.json({ data: automation, meta: {}, errors: [] }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Forbidden";
-    return NextResponse.json({ data: null, meta: {}, errors: [{ message }] }, { status: 403 });
+    return errorResponse(err);
   }
 }

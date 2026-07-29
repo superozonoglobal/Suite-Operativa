@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/app/generated/prisma/client";
 import type { CreateRequisitionInput, RespondRequisitionInput } from "@/lib/validation/requisition";
 import { createNotification } from "@/lib/services/notifications";
+import { ForbiddenError, ConflictError } from "@/lib/errors";
 
 export async function listRequisitions(filters: { fromUserId?: string; toUserId?: string } = {}) {
   const where: Prisma.RequisitionWhereInput = {};
@@ -47,11 +48,11 @@ export async function respondToRequisition(
     const requisition = await tx.requisition.findUniqueOrThrow({ where: { id } });
 
     if (requisition.toUserId !== actingUserId) {
-      throw new Error("Forbidden: only the recipient can respond to this requisition");
+      throw new ForbiddenError("Forbidden: only the recipient can respond to this requisition");
     }
 
     if (requisition.status !== "PENDIENTE") {
-      throw new Error("This requisition is no longer PENDIENTE (already responded to)");
+      throw new ConflictError("This requisition is no longer PENDIENTE (already responded to)");
     }
 
     const responder = await tx.user.findUniqueOrThrow({ where: { id: actingUserId } });
@@ -88,7 +89,7 @@ export async function respondToRequisition(
       return updated;
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
-        throw new Error("This requisition is no longer PENDIENTE (already responded to)");
+        throw new ConflictError("This requisition is no longer PENDIENTE (already responded to)");
       }
       throw err;
     }

@@ -16,7 +16,12 @@ const ROLE_TAG_VALUES = [
 export const registerSchema = z.object({
   name: z.string().min(1).max(200),
   email: z.string().email(),
-  password: z.string().min(8).max(200),
+  password: z
+    .string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres")
+    .max(200)
+    .regex(/[A-Z]/, "La contraseña debe tener al menos una mayúscula")
+    .regex(/[0-9]/, "La contraseña debe tener al menos un número"),
   roleTag: z.enum(ROLE_TAG_VALUES).optional(),
 });
 

@@ -62,8 +62,13 @@ export default async function RegisterPage({
             type="password"
             required
             minLength={8}
+            pattern="(?=.*[A-Z])(?=.*[0-9]).{8,}"
+            title="Mínimo 8 caracteres, con al menos una mayúscula y un número"
             className="rounded-md border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-[var(--text)]"
           />
+          <span className="text-xs text-[var(--text-faint)]">
+            Mínimo 8 caracteres, con al menos una mayúscula y un número.
+          </span>
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-[var(--text-muted)]">

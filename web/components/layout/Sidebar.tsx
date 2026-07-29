@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ROLES } from "@/lib/constants";
 import { signOut } from "@/lib/auth";
 import { SidebarNav } from "@/components/layout/SidebarNav";
@@ -13,7 +14,15 @@ export function Sidebar({ user }: { user: SidebarUser }) {
   return (
     <aside className="flex w-[260px] shrink-0 flex-col justify-between bg-[var(--bg-elevated)] border-r border-[var(--border)]">
       <div>
-        <div className="px-6 py-6">
+        <div className="flex items-center gap-2 px-6 py-6">
+          <Image
+            src="/icono-ozono.png"
+            alt="Super Ozono"
+            width={32}
+            height={32}
+            unoptimized
+            className="object-contain"
+          />
           <span className="font-[family-name:var(--font-wordmark)] font-black tracking-wide text-[var(--text)]">
             SUITE OPERATIVA
           </span>

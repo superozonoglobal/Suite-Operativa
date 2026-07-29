@@ -169,7 +169,7 @@ Todo el proceso de diseño y decisiones queda registrado en `docs/hydraia/`:
 - [x] Mensajes, Requisiciones, Notificaciones
 - [x] Analítica, Informes, Automatizaciones, Configuración
 - [x] Pasada de revisión de código (7 agentes) — 4 críticos + 13 altos corregidos
-- [ ] Recorrido manual completo en navegador
+- [x] Recorrido manual completo en navegador
 - [ ] Despliegue a producción (Vercel + Neon)
 - [ ] Asignar rol Project Manager al primer líder que se registre
 

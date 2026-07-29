@@ -71,10 +71,18 @@ en verde.** Corre local en `http://localhost:3000` (`cd web && npm run dev`).
       Quedan abiertos por elección los hallazgos MEDIUM/LOW del reporte (no pedidos
       en esta pasada) — ver esa sección del reporte si se quiere seguir.
 
-- [ ] **Probar la app entera a mano en el navegador** (registrarse → entrar →
-      recorrer los 12 módulos + las pantallas nuevas de crear proyecto/tarea y
-      aprobar metas). Nunca se hizo un click-through real completo — ahora que el
-      gate de seguridad está sólido, es el paso lógico antes del deploy.
+- [x] **Probar la app entera a mano en el navegador** (2026-07-29): registro con
+      el email semilla (queda SUPERUSER, confirmado en Equipo), logout/login,
+      recorrido de los 12 módulos, y las pantallas nuevas — crear
+      Proyecto→Producto→Tarea desde `/proyectos` (aparece en Informes/Analítica),
+      aprobar una Meta y confirmar que "Cumplimiento de metas" en Analítica
+      reacciona (0%→100% al cargar progreso, ya no queda structuralmente en
+      0% como decía H12), y guardar la allowlist de Configuración con reload
+      para confirmar que persiste (H2). Sin errores de consola ni pantallas
+      rotas. Nota aparte: se encontró y arregló un gap real de deploy no
+      documentado — faltaba `prisma generate` en el pipeline de build
+      (`postinstall` agregado, commit `93073d7`), sin eso el primer build en
+      Vercel rompía.
 - [ ] **Desplegar a producción** (Fase 7 del plan): el usuario ya tiene creado el
       repo de GitHub (`github.com/superozonoglobal/Suite-Operativa`) y el equipo
       de Vercel (`robinsons-projects-27c1b844`) — falta: importar el proyecto en

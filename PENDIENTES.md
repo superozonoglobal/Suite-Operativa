@@ -141,72 +141,52 @@ Corre local en `http://localhost:3000` (`cd web && npm run dev`).
         ANTES de aplicar las migraciones sobre esa base.** No se tocó ningún
         archivo.
 
-  - [ ] **H7 (`PATCH /api/tasks/[id]` 500 con `assigneeId`) — SIGUIENTE PASO,
-        empezar por acá.** Archivo
-        `web/prisma/migrations/20260728214531_rename_roletag_director_to_developer/migration.sql`.
-        **NO editar una migración ya aplicada/committeada en `main`** (mala
-        práctica de Prisma) — en cambio, crear una migración NUEVA que sea
-        un no-op seguro si ya no quedan filas `DIRECTOR` (ya no deberían
-        existir en esta DB, el bug es solo para el caso de un restore/DB
-        nueva) — o, más simple: agregar una migración nueva con
-        `UPDATE "Task" SET "roleTag"='DEVELOPER' WHERE "roleTag"='DIRECTOR';
-        UPDATE "User" SET "roleTag"='DEVELOPER' WHERE "roleTag"='DIRECTOR';`
-        ANTES de donde se necesite, pero como el enum ya no tiene el valor
-        `DIRECTOR` en el schema actual, esto requiere pensarlo bien: la
-        migración rota ya se aplicó en este entorno. Lo más seguro es
-        documentar esto como riesgo conocido para cualquier DB que NO sea
-        esta (Neon nueva, restore de backup viejo) y agregar el `UPDATE`
-        faltante directamente en el archivo de migración histórico SOLO SI
-        Prisma lo permite sin romper el hash de la migración ya aplicada
-        localmente (revisar `prisma/migrations/migration_lock.toml` y si
-        hace falta `prisma migrate resolve`). Pedirle confirmación al usuario
-        antes de tocar una migración ya aplicada — alternativa más segura:
-        dejarlo documentado en el reporte y en ADR nuevo, no como código.
+  - [x] **H7 (`PATCH /api/tasks/[id]` 500 con `assigneeId`)** — investigado
+        con un test de ruta nuevo (primer test de ruta en el repo,
+        `web/tests/integration/api/tasks-patch.test.ts`, mockeando
+        `@/lib/auth` con `vi.mock`). **El 500 reportado NO se reproduce**:
+        Prisma 7 acepta `assigneeId` como escalar en runtime aunque el tipo
+        TS anotado fuera `Prisma.TaskUpdateInput` (que no lo declara) — el
+        test pasó en verde de entrada. Igual corregí el tipo a
+        `Prisma.TaskUncheckedUpdateInput` en
+        `web/app/api/tasks/[id]/route.ts` (es el tipo correcto para lo que
+        realmente se construye) y dejé el test como guarda de regresión.
 
-  - [ ] **H7 (`PATCH /api/tasks/[id]` 500 con `assigneeId`)** — archivo
-        `web/app/api/tasks/[id]/route.ts` (líneas ~49-56 en la revisión
-        original). El bug: `const { status: _status, ...rest } = parsed.data;
-        const data: Prisma.TaskUpdateInput = { ...rest };` — `assigneeId` no
-        existe en `Prisma.TaskUpdateInput` (solo en
-        `Prisma.TaskUncheckedUpdateInput`). Fix: mapear `assigneeId` a la
-        forma de relación (`assignee: { connect: { id: assigneeId } }`) o
-        cambiar el tipo de `data` a `Prisma.TaskUncheckedUpdateInput`. Escribir
-        primero un test que haga PATCH con `assigneeId` y hoy falle con 500
-        (test de ruta, no de servicio — no hay tests de rutas todavía en
-        este repo, sería el primero; revisar cómo invocar un Route Handler
-        de Next.js directamente en Vitest, ej. importando el handler y
-        llamando `PATCH(new NextRequest(...), { params: ... })`).
+  - [x] **H8 (`npm run lint` en rojo)** — hecho.
+        `web/components/layout/NotificationBell.tsx`: moví el fetch a una
+        función async declarada dentro del efecto, con flag `active` (evita
+        `setState` tras unmount) y `try/catch` (evita unhandled rejection
+        cada 30s si falla el fetch). `npm run lint` ahora sale con exit code
+        0 (queda 1 warning preexistente en `InformesView.tsx`, no es error,
+        no bloquea — es un hallazgo MEDIUM distinto, no tocado).
 
-  - [ ] **H8 (`npm run lint` en rojo)** — archivo
-        `web/components/layout/NotificationBell.tsx` línea ~18. Error:
-        `react-hooks/set-state-in-effect` porque `fetchUnread()` llama
-        `setNotifications` sincrónicamente en el cuerpo del efecto. Fix:
-        mover la llamada inicial dentro de una función async separada
-        invocada desde el efecto (patrón estándar: `useEffect(() => { let
-        active = true; async function load() { const data = await
-        fetchUnread(); if (active) setNotifications(data); } load(); return
-        () => { active = false; }; }, [])`), y agregar `try/catch` (esto
-        también resuelve parcialmente el M6 del reporte, fuga de errores no
-        manejados). No hay test de lint per se — correr `npx eslint .` y
-        confirmar 0 errores.
+  - [x] **H13 (Prisma leakea errores crudos)** — hecho. Nuevo
+        `web/lib/errors.ts` (`AppError`, `ForbiddenError`, `ConflictError`) y
+        `web/lib/api/errorResponse.ts` (helper compartido: si el error es un
+        `AppError` devuelve su mensaje+status tal cual, si no, `console.error`
+        + 500 genérico "Internal server error", nunca el mensaje crudo).
+        Aplicado en las 5 rutas que tenían el patrón
+        `err instanceof Error ? err.message : "Forbidden"`:
+        `app/api/automations/route.ts`, `app/api/config/route.ts`,
+        `app/api/projects/route.ts`, `app/api/requisitions/[id]/route.ts`,
+        `app/api/users/[id]/route.ts`. Los servicios correspondientes
+        (`users.ts`, `automations.ts`, `orgSettings.ts`, `projects.ts`,
+        `requisitions.ts`) ahora lanzan `ForbiddenError`/`ConflictError` en
+        vez de `Error` plano. Test nuevo
+        `web/tests/integration/api/users-patch.test.ts` prueba que un PATCH
+        a un usuario inexistente da 500 genérico (no el mensaje de Prisma) y
+        que un 403 real de autorización sigue siendo legible.
 
-  - [ ] **H13 (Prisma leakea errores crudos)** — afecta varias rutas:
-        `web/app/api/requisitions/[id]/route.ts`,
-        `web/app/api/projects/route.ts`, `web/app/api/automations/route.ts`,
-        `web/app/api/users/[id]/route.ts` (buscar
-        `err instanceof Error ? err.message : ...` con `grep -rn "err instanceof Error ? err.message" web/app/api`).
-        Fix: crear una clase de error propia (ej. `ForbiddenError` en un
-        archivo nuevo `web/lib/errors.ts`) que los servicios lancen
-        explícitamente para casos de autorización, y en cada route handler
-        distinguir `err instanceof ForbiddenError` (devolver `err.message`,
-        es seguro) de cualquier otro error (loguear con `console.error` y
-        devolver un mensaje genérico "Internal error" con status 500, nunca
-        `err.message` crudo de Prisma). Testear con un test de servicio que
-        verifique que un error de autorización sigue siendo legible pero uno
-        de Prisma (ej. `findUniqueOrThrow` fallando) no se propaga tal cual.
+  Progreso commiteado y pusheado a `main` en 5 commits en total:
+  `e7f868c` (H1+H4), `955399b` (H9+H2+H5), `e608435` (H6 doc+H7+H8),
+  `928715c` (H13). 96/96 tests, typecheck, lint y build limpios a esta
+  altura. **Quedan 3 hallazgos HIGH**: H3+H11 (el más grande, IDOR — ver
+  abajo), H10 (construir UI crear Proyecto/Producto/Tarea), H12 (flujo de
+  aprobación de Metas).
 
-  - [ ] **H3 + H11 (IDOR en metas/automatizaciones/tareas)** — el más grande
-        de los que quedan. Archivos: `web/lib/services/goals.ts`
+  - [ ] **H3 + H11 (IDOR en metas/automatizaciones/tareas) — SIGUIENTE PASO,
+        empezar por acá.** El más grande de los que quedan. Archivos:
+        `web/lib/services/goals.ts`
         (`updateGoalProgress`, `toggleChecklistItem` — sin chequeo de dueño),
         `web/lib/services/automations.ts` (`setAutomationEnabled` — sin
         chequeo de nivel, a diferencia de `createAutomation` que sí lo

@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { updateGoalProgress } from "@/lib/services/goals";
+import { updateGoalProgress, approveGoal } from "@/lib/services/goals";
 import { errorResponse } from "@/lib/api/errorResponse";
 import { z } from "zod";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-const updateGoalSchema = z.object({ current: z.number().int() });
+const updateGoalSchema = z
+  .object({
+    current: z.number().int().optional(),
+    status: z.enum(["APROBADA"]).optional(),
+  })
+  .refine((data) => data.current !== undefined || data.status !== undefined, {
+    message: "current or status is required",
+  });
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const session = await auth();
@@ -31,7 +38,12 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    const goal = await updateGoalProgress(id, parsed.data.current, actingUser);
+    if (parsed.data.status === "APROBADA") {
+      const goal = await approveGoal(id, actingUser);
+      return NextResponse.json({ data: goal, meta: {}, errors: [] });
+    }
+
+    const goal = await updateGoalProgress(id, parsed.data.current!, actingUser);
     return NextResponse.json({ data: goal, meta: {}, errors: [] });
   } catch (err) {
     return errorResponse(err);

@@ -65,3 +65,11 @@ export async function toggleChecklistItem(itemId: string, actingUser: Pick<User,
 
   return prisma.goalChecklistItem.update({ where: { id: itemId }, data: { done: !item.done } });
 }
+
+export async function approveGoal(id: string, actingUser: Pick<User, "level">) {
+  if (!isAtLeastLevel(actingUser.level, "LIDER")) {
+    throw new ForbiddenError("Forbidden: only Líder and above can approve goals");
+  }
+
+  return prisma.goal.update({ where: { id }, data: { status: "APROBADA" } });
+}

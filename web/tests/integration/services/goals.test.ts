@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { listGoals, createGoal, updateGoalProgress, toggleChecklistItem } from "@/lib/services/goals";
+import {
+  listGoals,
+  createGoal,
+  updateGoalProgress,
+  toggleChecklistItem,
+  approveGoal,
+} from "@/lib/services/goals";
+import { getAnalyticsSummary } from "@/lib/services/analytics";
 
 describe("goals service", () => {
   let userId: string;
@@ -120,6 +127,31 @@ describe("goals service", () => {
     ).rejects.toThrow(/forbidden/i);
 
     await prisma.user.delete({ where: { id: other.id } });
+  });
+
+  it("rejects approval by a plain COLABORADOR", async () => {
+    const goal = await createGoal(
+      { title: "Needs approval", type: "NUMERO", scope: "PERSONAL", target: 10, month: "2026-07" },
+      userId
+    );
+
+    await expect(
+      approveGoal(goal.id, { level: "COLABORADOR" })
+    ).rejects.toThrow(/forbidden/i);
+  });
+
+  it("approves a goal when the actor is LIDER or above, and it counts toward the analytics average", async () => {
+    const goal = await createGoal(
+      { title: "Approved goal", type: "NUMERO", scope: "PERSONAL", target: 10, month: "2026-07" },
+      userId
+    );
+    await updateGoalProgress(goal.id, 10, { id: userId, level: "COLABORADOR" });
+
+    const approved = await approveGoal(goal.id, { level: "LIDER" });
+    expect(approved.status).toBe("APROBADA");
+
+    const summary = await getAnalyticsSummary();
+    expect(summary.goalsCompletionAvg).toBeGreaterThan(0);
   });
 
   it("lists goals filtered by month", async () => {

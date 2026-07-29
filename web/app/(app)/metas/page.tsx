@@ -15,6 +15,7 @@ export default async function MetasPage() {
 
   const myActiveGoals = goals.filter((g) => g.userId === session?.user.id && g.status === "ACTIVA");
   const hasFewGoals = myActiveGoals.length < 3;
+  const canApprove = session?.user.level !== "COLABORADOR";
 
   return (
     <>
@@ -38,7 +39,7 @@ export default async function MetasPage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {goals.map((goal) => (
-            <GoalCard key={goal.id} goal={goal} />
+            <GoalCard key={goal.id} goal={goal} canApprove={canApprove} />
           ))}
         </div>
 

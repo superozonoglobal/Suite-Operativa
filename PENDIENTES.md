@@ -201,7 +201,28 @@ Corre local en `http://localhost:3000` (`cd web && npm run dev`).
         función que falle hoy (un COLABORADOR ajeno a la meta/tarea puede
         editarla) antes de tocar código.
 
-  - [ ] **H10 (construir UI para crear Proyecto/Producto/Tarea)** — el
+  - [x] **H3 + H11 (IDOR en metas/automatizaciones/tareas)** — hecho.
+        Nuevo `web/lib/authz.ts` compartido (`LEVEL_RANK`, `isAtLeastLevel`),
+        refactorizado `users.ts` para usarlo. `goals.ts`:
+        `updateGoalProgress`/`toggleChecklistItem` ahora exigen ser dueño de
+        la meta (`goal.userId`) o LIDER+. `automations.ts`:
+        `setAutomationEnabled` ahora exige LIDER+ (igual que
+        `createAutomation`). `tasks.ts`: nueva `assertCanEditTask`
+        compartida por `updateTaskStatus` y la función nueva
+        `updateTaskFields` (extraída de la rama inline de la ruta) — exige
+        ser `assignee`, `createdBy`, o LIDER+. Las 4 rutas afectadas
+        (`goals/[id]`, `goals/checklist-items/[itemId]`, `automations/[id]`,
+        `tasks/[id]`) ahora buscan el usuario actuante completo y lo pasan.
+        106/106 tests (9 nuevos). Commit `e582a97`.
+
+  Progreso commiteado y pusheado a `main` en 6 commits en total ahora:
+  `e7f868c`, `955399b`, `e608435`, `928715c`, `f2fc8dd` (doc), `e582a97`.
+  106/106 tests, typecheck, lint y build limpios. **Quedan 2 hallazgos HIGH,
+  los dos de construir UI nueva (confirmado con el usuario que se hacen en
+  esta pasada): H10 y H12.**
+
+  - [ ] **H10 (construir UI para crear Proyecto/Producto/Tarea) —
+        SIGUIENTE PASO, empezar por acá.** el
         usuario confirmó que SÍ quiere esto en esta pasada (no es solo
         seguridad, es una pantalla nueva). `POST /api/projects` y
         `/api/tasks` ya existen y funcionan (tienen tests de servicio) pero

@@ -66,4 +66,18 @@ describe("requisitions service", () => {
     expect(items.every((r) => r.toUserId === toUserId)).toBe(true);
     expect(items.length).toBeGreaterThan(0);
   });
+
+  it("responding twice to the same requisition creates only one task (no TOCTOU duplicate)", async () => {
+    const req = await createRequisition({ toUserId, title: "Doble click" }, fromUserId);
+
+    const first = await respondToRequisition(req.id, { status: "ACEPTADA" }, toUserId);
+    expect(first.status).toBe("ACEPTADA");
+
+    await expect(
+      respondToRequisition(req.id, { status: "ACEPTADA" }, toUserId)
+    ).rejects.toThrow(/pendiente|already|status/i);
+
+    const tasks = await prisma.task.findMany({ where: { requisitions: { some: { id: req.id } } } });
+    expect(tasks.length).toBe(1);
+  });
 });

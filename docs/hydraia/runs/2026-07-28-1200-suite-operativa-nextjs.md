@@ -70,8 +70,31 @@ plan-only run; 0008-0010 added mid-execution — see below)
       every commit. No double code review or verify-and-close run yet —
       deferred until Phase 7 lands or the user explicitly asks for a review
       pass.
-- [ ] Phase 5 — Code review (not run — deferred, see above)
-- [ ] Phase 6 — Verify & close (not run — see above)
+- [x] Phase 5 — Code review (2026-07-29, resumed via `hydraia:resume`). 7 agents
+      dispatched in parallel (hydraia-reviewer, typescript-reviewer,
+      react-reviewer, database-reviewer, security-reviewer,
+      silent-failure-hunter, repo-scan+production-audit). Consolidated report:
+      `docs/hydraia/reviews/2026-07-29-phase5-code-review.md`. **Verdict: DO
+      NOT DEPLOY** — 4 CRITICAL (2 confirmed independently by 6 of 7
+      reviewers: self-service privilege escalation to SUPERUSER, and every
+      user's bcrypt passwordHash served to any logged-in user) + 13 HIGH
+      findings. production-audit score 32/100 (blocked). Secrets/embedded-libs
+      scan came back clean. Fixes needed before Phase 6/7 — see the report's
+      "Recommended fix order". Plan Phase 7 deployment remains separately
+      gated on human Vercel/Neon account actions.
+- [x] Phase 5b — Fix the 4 CRITICAL findings (2026-07-29, same day, TDD). All 4
+      fixed and verified: passwordHash leak (Prisma global `omit`), privilege
+      escalation (rank-based authorization in `updateUserRole`), no
+      transactions (requisitions/messages wrapped in `$transaction`,
+      extended-unique-where guard against the TOCTOU race), zero indexes
+      (added `@@index` on every FK across all 16 models,
+      migration `20260729140207_add_missing_indexes`). 73/73 tests passing
+      (5 new), `tsc --noEmit` clean, `npm run build` clean. Details in
+      `docs/hydraia/reviews/2026-07-29-phase5-code-review.md`. The 13 HIGH
+      findings and everything below CRITICAL are still open — user chose to
+      fix only the criticals in this pass.
+- [ ] Phase 6 — Verify & close (still blocked on the 13 open HIGH findings —
+      notably H8, `npm run lint` is red — before Phase 7 deploy)
 
 ## Mid-execution additions beyond the frozen plan (not in the original plan text)
 - **ADR-0008** (hybrid auth): added email/password registration (Auth.js

@@ -29,6 +29,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -37,6 +38,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -161,6 +164,8 @@ model Project {
   products Product[]
   tasks    Task[]
   posts    Post[]
+
+  @@index([leadId])
 }
 
 model Product {
@@ -176,6 +181,8 @@ model Product {
 
   tasks Task[]
   posts Post[]
+
+  @@index([projectId])
 }
 
 model Task {
@@ -206,6 +213,12 @@ model Task {
   requisitions Requisition[]
   dependsOn    TaskDependency[]   @relation("DependentTask")
   dependedOnBy TaskDependency[]   @relation("DependsOnTask")
+
+  @@index([assigneeId, status])
+  @@index([projectId])
+  @@index([productId])
+  @@index([goalId])
+  @@index([createdById])
 }
 
 model TaskDependency {
@@ -216,6 +229,7 @@ model TaskDependency {
   dependsOnTask Task   @relation("DependsOnTask", fields: [dependsOnId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, dependsOnId])
+  @@index([dependsOnId])
 }
 
 model TaskComment {
@@ -226,6 +240,9 @@ model TaskComment {
   user      User     @relation(fields: [userId], references: [id])
   text      String   @db.Text
   createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([userId])
 }
 
 model TaskHistoryEntry {
@@ -234,6 +251,8 @@ model TaskHistoryEntry {
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   text      String
   createdAt DateTime @default(now())
+
+  @@index([taskId])
 }
 
 model Goal {
@@ -253,6 +272,8 @@ model Goal {
 
   checklistItems GoalChecklistItem[]
   tasks          Task[]
+
+  @@index([month, userId])
 }
 
 model GoalChecklistItem {
@@ -261,6 +282,8 @@ model GoalChecklistItem {
   goal   Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
   label  String
   done   Boolean @default(false)
+
+  @@index([goalId])
 }
 
 model Post {
@@ -280,6 +303,12 @@ model Post {
   assignee      User?      @relation("PostAssignee", fields: [assigneeId], references: [id])
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+
+  @@index([taskId])
+  @@index([projectId])
+  @@index([productId])
+  @@index([assigneeId])
+  @@index([scheduledDate])
 }
 
 model Requisition {
@@ -298,6 +327,10 @@ model Requisition {
   updatedAt   DateTime          @updatedAt
 
   driveFiles DriveFile[]
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([taskId])
 }
 
 model Message {
@@ -310,6 +343,9 @@ model Message {
   content     String    @db.Text
   readAt      DateTime?
   createdAt   DateTime  @default(now())
+
+  @@index([senderId])
+  @@index([recipientId])
 }
 
 model Automation {
@@ -323,6 +359,8 @@ model Automation {
   createdBy   User     @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([createdById])
 }
 
 model Notification {
@@ -332,6 +370,8 @@ model Notification {
   text      String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId, read])
 }
 
 model DriveFile {
@@ -347,6 +387,10 @@ model DriveFile {
   uploadedById  String
   uploadedBy    User         @relation(fields: [uploadedById], references: [id])
   createdAt     DateTime     @default(now())
+
+  @@index([taskId])
+  @@index([requisitionId])
+  @@index([uploadedById])
 }
 
 model OrgSettings {

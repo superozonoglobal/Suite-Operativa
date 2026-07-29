@@ -24,7 +24,10 @@ export async function registerUser(input: RegisterInput) {
     throw new EmailNotAllowedError();
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    omit: { passwordHash: false },
+  });
   if (existing?.passwordHash) {
     throw new AlreadyRegisteredError();
   }

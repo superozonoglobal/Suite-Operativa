@@ -28,19 +28,35 @@ contraseña, rol elegido en el registro. 67 tests automáticos, todos en verde.
 Corre local en `http://localhost:3000` (`cd web && npm run dev`).
 
 ### Pendiente
+- [x] **Pasada de revisión de código** (Fase 5 de Hydraia): corrida el
+      2026-07-29 con 7 agentes en paralelo. Reporte completo en
+      `docs/hydraia/reviews/2026-07-29-phase5-code-review.md`.
+- [x] **Corregir los 4 hallazgos CRÍTICOS** (2026-07-29, mismo día, con TDD):
+      auto-escalación de privilegios, fuga de passwordHash, falta de
+      transacciones (condición de carrera al aceptar una requisición dos
+      veces), y cero índices en la base de datos. Los 4 arreglados y
+      verificados — 73/73 tests, typecheck y build limpios. Detalle de cada
+      fix en el reporte de revisión (sección "FIXED").
+- [ ] **13 hallazgos HIGH todavía abiertos** (ver el reporte de revisión):
+      sesión de usuario borrado sigue válida 30 días, allowlist de
+      Configuración sigue sin leerse nunca, IDOR en metas/tareas/automatizaciones,
+      sin rate limiting en login, migración RoleTag DIRECTOR→DEVELOPER frágil,
+      `npm run lint` en rojo, y más. No se tocaron en esta pasada — el usuario
+      eligió arreglar solo los críticos por ahora.
 - [ ] **Probar la app entera a mano en el navegador** (registrarse → entrar →
-      recorrer los 12 módulos). Esta sesión solo corrió build/typecheck/tests
-      automáticos, nunca un click-through real completo.
+      recorrer los 12 módulos). Nunca se hizo un click-through real completo.
+      Recomendado hacerlo después de cerrar al menos los HIGH de autorización
+      (H3/H11, IDOR) ya que el gate de acceso ahora es sólido pero varias
+      mutaciones siguen sin chequeo de rol en el servidor.
 - [ ] **Desplegar a producción** (Fase 7 del plan): el usuario ya tiene creado el
       repo de GitHub (`github.com/superozonoglobal/Suite-Operativa`) y el equipo
       de Vercel (`robinsons-projects-27c1b844`) — falta: importar el proyecto en
       Vercel, crear la base en Neon, y cargar las variables de entorno reales
       (`AUTH_SECRET`, `DATABASE_URL` con el connection string *pooled* de Neon,
       `SEED_SUPERUSER_EMAIL`, `ALLOWED_EMAIL_DOMAIN`) — detalle en ADR-0005 y
-      Task 7-2 del plan.
-- [ ] **Pasada de revisión de código** (Fase 5-6 de Hydraia, "double review"):
-      todavía no se corrió — vale la pena hacerla antes o durante el despliegue,
-      no después de cada tarea individual.
+      Task 7-2 del plan. **Recomendado cerrar al menos los HIGH de seguridad
+      restantes antes del deploy** (allowlist inerte, rate limiting, sesión de
+      usuario borrado, migración frágil).
 - [ ] **Asignar el rol Project Manager** a la persona que corresponda (queda
       pendiente a propósito, sin email todavía — se hace desde Equipo una vez
       que esa persona se registre).

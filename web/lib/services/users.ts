@@ -1,24 +1,46 @@
 import { prisma } from "@/lib/prisma";
 import type { User } from "@/app/generated/prisma/client";
 
+const LEVEL_RANK: Record<User["level"], number> = {
+  COLABORADOR: 0,
+  LIDER: 1,
+  PROJECT_MANAGER: 2,
+  SUPERUSER: 3,
+};
+
 export async function listUsers() {
   return prisma.user.findMany({ orderBy: { name: "asc" } });
 }
 
 export async function updateUserRole(
   targetId: string,
-  changes: { roleTag?: string; level?: string },
-  actingUser: Pick<User, "level">
+  changes: { roleTag?: User["roleTag"]; level?: User["level"] },
+  actingUser: Pick<User, "id" | "level">
 ) {
   if (actingUser.level === "COLABORADOR") {
     throw new Error("Forbidden: only Líder and above can change roles");
   }
 
+  if (changes.level) {
+    if (targetId === actingUser.id) {
+      throw new Error("Forbidden: cannot change your own level");
+    }
+
+    if (LEVEL_RANK[changes.level] > LEVEL_RANK[actingUser.level]) {
+      throw new Error("Forbidden: cannot grant a level higher than your own");
+    }
+
+    const target = await prisma.user.findUniqueOrThrow({ where: { id: targetId } });
+    if (LEVEL_RANK[target.level] >= LEVEL_RANK[actingUser.level]) {
+      throw new Error("Forbidden: cannot change the level of a user at or above your own rank");
+    }
+  }
+
   return prisma.user.update({
     where: { id: targetId },
     data: {
-      roleTag: changes.roleTag as User["roleTag"],
-      level: changes.level as User["level"],
+      roleTag: changes.roleTag,
+      level: changes.level,
     },
   });
 }

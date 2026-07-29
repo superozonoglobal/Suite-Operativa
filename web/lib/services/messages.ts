@@ -15,18 +15,20 @@ export async function listThread(userId: string, otherUserId: string) {
 }
 
 export async function sendMessage(input: SendMessageInput, senderId: string) {
-  const message = await prisma.message.create({
-    data: {
-      senderId,
-      recipientId: input.recipientId,
-      content: input.content,
-    },
-    include: { sender: true },
+  return prisma.$transaction(async (tx) => {
+    const message = await tx.message.create({
+      data: {
+        senderId,
+        recipientId: input.recipientId,
+        content: input.content,
+      },
+      include: { sender: true },
+    });
+
+    await createNotification(input.recipientId, `${message.sender.name} te envió un mensaje.`, tx);
+
+    return message;
   });
-
-  await createNotification(input.recipientId, `${message.sender.name} te envió un mensaje.`);
-
-  return message;
 }
 
 export async function markThreadRead(userId: string, otherUserId: string) {

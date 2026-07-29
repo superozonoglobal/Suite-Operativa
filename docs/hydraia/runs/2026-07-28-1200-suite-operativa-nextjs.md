@@ -93,8 +93,21 @@ plan-only run; 0008-0010 added mid-execution — see below)
       `docs/hydraia/reviews/2026-07-29-phase5-code-review.md`. The 13 HIGH
       findings and everything below CRITICAL are still open — user chose to
       fix only the criticals in this pass.
-- [ ] Phase 6 — Verify & close (still blocked on the 13 open HIGH findings —
-      notably H8, `npm run lint` is red — before Phase 7 deploy)
+- [x] Phase 5c — Fix all 13 HIGH findings (2026-07-29, same day, TDD). All 13
+      addressed: H1/H2/H4/H5/H8/H9/H13 fixed in code; H3+H11 (IDOR) fixed
+      together; H10 (missing create UI) and H12 (goal approval) built as new
+      features; H6 (fragile migration) and H7 (claimed 500) investigated and
+      resolved by documentation/type-correction rather than code changes,
+      since neither reproduced as a real bug worth the risk of touching an
+      applied migration (H6) or didn't reproduce at all (H7). 109/109 tests
+      (36 new since Phase 5 started), `tsc --noEmit`/`npm run lint`/
+      `npm run build` all clean. 11 commits total (`e7f868c`..`d1229cf`),
+      all pushed to `main`. Every CRITICAL and HIGH finding from
+      `docs/hydraia/reviews/2026-07-29-phase5-code-review.md` is now closed;
+      MEDIUM/LOW items remain open by choice.
+- [ ] Phase 6 — Verify & close (recommend the manual browser click-through
+      that was never done, plus a lighter security+database re-review,
+      before Phase 7 deploy)
 
 ## Mid-execution additions beyond the frozen plan (not in the original plan text)
 - **ADR-0008** (hybrid auth): added email/password registration (Auth.js

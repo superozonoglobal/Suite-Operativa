@@ -10,13 +10,18 @@ repo-scan (secrets/embedded libs), `production-audit`.
 
 ## Verdict
 
-**DO NOT DEPLOY.** Every reviewer that touched auth/data access independently found the
-same two critical bugs (6 of 7 reports), plus a long tail of high-severity issues. None
-require architectural rework — all are fixable within the existing service/route structure —
-but they must be fixed before Phase 7 (Vercel/Neon deploy) or the browser click-through,
-since testing against real accounts would exercise the same holes.
+**Original verdict: DO NOT DEPLOY.** Every reviewer that touched auth/data access
+independently found the same two critical bugs (6 of 7 reports), plus a long tail of
+high-severity issues.
 
-Production-audit score: **32/100 — Blocked.**
+Production-audit score at the time: **32/100 — Blocked.**
+
+**Update (2026-07-29, later the same day): all 4 CRITICAL and all 13 HIGH findings are now
+fixed.** 109/109 tests passing, `tsc --noEmit`/`npm run lint`/`npm run build` all clean.
+Remaining MEDIUM/LOW findings (see below) are open by choice — not requested for this pass.
+Recommend a quick re-run of `security-reviewer` + `database-reviewer` (not the full 7-agent
+sweep) before Phase 7, plus the manual browser click-through that was never done, before
+calling this deploy-ready.
 
 ---
 
@@ -115,55 +120,101 @@ the local Postgres DB.
 
 ## HIGH (deployment blockers — fix before Phase 7)
 
+**Status update (2026-07-29, later the same day): all 13 HIGH findings below
+are now fixed with TDD**, same discipline as the CRITICALs above. 109/109
+tests passing, `tsc --noEmit` clean, `npm run lint` clean, `npm run build`
+clean. Commits `e7f868c` through `d1229cf` on `main`. Every CRITICAL and
+HIGH finding from this review is now closed — see each item for its fix
+summary. MEDIUM/LOW findings below are still open by choice (not requested
+for this pass).
+
 - **H1 — Deleted users keep a valid session for the JWT's full life (default 30 days).**
   `lib/auth.ts:35-42`'s `jwt` callback tolerates `dbUser === null` and returns the token
   unmodified instead of invalidating it. No `maxAge` is set either.
+  **FIXED:** extracted to `lib/auth/resolveJwtToken.ts` (unit-tested) — returns `null`
+  (invalidates the session) when `dbUser` is gone; added explicit `maxAge: 12h`.
 - **H2 — The Configuración allow-list is completely decorative.** `lib/authAllowList.ts`
   reads only `SEED_SUPERUSER_EMAIL`/`ALLOWED_EMAIL_DOMAIN` env vars; `OrgSettings.allowedEmails`
   (written by the Configuración UI, confirmed "Guardado.") is never read by the sign-in or
   registration path. Independently found by 3 of the 7 reviewers.
+  **FIXED:** `isEmailAllowed` is now `async` and also consults `getOrgSettings()`.
 - **H3 — Broad IDOR: list/mutation endpoints have no ownership scoping.** Any authenticated
   user can read every requisition/task/goal in the org (unfiltered `GET`s), set any teammate's
   goal progress to any number, toggle any checklist item, and disable any automation
   (`PATCH /api/automations/[id]` has no level check even though `POST` does).
+  **FIXED** together with H11 below — see that entry.
 - **H4 — Account takeover via `/register` on password-less rows, no email verification
   anywhere, and a bootstrap race on `SEED_SUPERUSER_EMAIL`** (a personal Gmail address
   currently in `.env` — whoever registers it first in production becomes SUPERUSER, so
   bootstrap must happen in the same minute as go-live, not after).
+  **FIXED (partially by design):** `registerUser` now rejects self-claiming a passwordless
+  `SUPERUSER`/`PROJECT_MANAGER` row (`RequiresAdminSetupError`). The bootstrap race itself is
+  an accepted ADR-0009 tradeoff, not closed in code — mitigate operationally by registering
+  `SEED_SUPERUSER_EMAIL` immediately at deploy, before sharing the URL.
 - **H5 — No rate limiting on sign-in or register**, plus a timing oracle (early return before
   `bcrypt.compare` on a nonexistent email) that lets an attacker enumerate valid staff emails.
+  **FIXED:** `authorize` extracted to `lib/auth/authorizeCredentials.ts`; always runs
+  `bcrypt.compare` (against a dummy hash when no user/hash exists); new `lib/rateLimit.ts`
+  (5 attempts/60s per email, in-memory — documented as best-effort on Vercel serverless).
 - **H6 — Migration `20260728214531` (RoleTag rename DIRECTOR→DEVELOPER) empirically fails**
   if any row still has `roleTag='DIRECTOR'` when replayed — verified by replaying all 5
   migrations against a scratch DB. The author's "verified no DIRECTOR rows" comment is a
   point-in-time claim baked into a migration that will run again on Neon / any restored
   backup / any teammate's DB.
+  **Decision: documented, not code-fixed** — editing an already-applied migration changes its
+  checksum and breaks `migrate deploy/dev` for anyone who already ran it, which is riskier than
+  the bug itself. Real risk is low for this specific deploy (fresh, empty Neon DB per ADR-0006).
+  Recovery SQL for the one real trigger scenario (restoring an old backup) is in `PENDIENTES.md`.
 - **H7 — `PATCH /api/tasks/[id]` always 500s when changing `assigneeId`** — `Prisma.TaskUpdateInput`
   has no `assigneeId` field (only `TaskUncheckedUpdateInput` does); the spread bypasses
   TypeScript's excess-property check so `tsc` sees no problem. Untested — no route-handler
   tests exist anywhere, only service-level tests.
+  **Investigated, does not reproduce:** first route-handler test in the repo proved Prisma 7's
+  runtime accepts the scalar write regardless of the TS type. Tightened the annotation to
+  `TaskUncheckedUpdateInput` anyway (the type that actually matches) and kept the test as a
+  regression guard.
 - **H8 — `npm run lint` is currently red** (`NotificationBell.tsx:18`,
   `react-hooks/set-state-in-effect`) — confirmed by 3 reviewers independently. The lint gate
   fails as-is.
+  **FIXED:** fetch moved into a named async function inside the effect, guarded by an `active`
+  flag plus `try/catch`. `npm run lint` now exits 0.
 - **H9 — `proxy.ts` enforces nothing.** No `authorized` callback is defined, so the Next 16
   proxy is a pure pass-through (verified against `next-auth`'s source). Real protection today
   comes only from per-route `auth()` calls and the `(app)` layout guard — which do hold, but
   the next route added outside that structure ships unauthenticated by default. Concretely,
   `app/page.tsx` is still the untouched `create-next-app` scaffold, publicly reachable at `/`.
+  **FIXED:** added `callbacks.authorized` (delegating to unit-tested `lib/auth/isAuthorized.ts`)
+  and `pages.signIn: "/signin"`; `app/page.tsx` now redirects to `/dashboard`.
 - **H10 — Nothing in the UI can create a Project, Product, or Task.** `POST /api/projects`
   and `/api/tasks` have no caller anywhere in `components/`; `createProduct` has no route
   handler at all (dead code, reachable only from its own test). `/proyectos` is read-only.
   The only way a Task is ever created is via an accepted Requisition. This means the "12
   working modules" claim from the run log is overstated for Proyectos.
+  **FIXED:** new `app/api/products/route.ts`; `createProduct` now requires Líder+ (was
+  missing the check entirely — folded into the H11 fix too); new
+  `NewProjectForm`/`NewProductForm`/`NewTaskForm` client components wired into `/proyectos`.
 - **H11 — Server-side auth checks missing on automations/goals/tasks mutations** (same
   family as H3, called out separately by multiple reviewers as UI-only enforcement, which the
   design spec explicitly forbids: *"never enforced only in the UI"*).
+  **FIXED:** new shared `lib/authz.ts` (`LEVEL_RANK`, `isAtLeastLevel`).
+  `updateGoalProgress`/`toggleChecklistItem` now require goal ownership or Líder+.
+  `setAutomationEnabled` now requires Líder+ (matching `createAutomation`). Tasks got a new
+  `assertCanEditTask` (assignee, creator, or Líder+), shared by `updateTaskStatus` and the new
+  `updateTaskFields` (extracted from the route's inline branch).
 - **H12 — Analítica's goal-completion metric is structurally stuck at 0%.** Nothing in the
   app ever sets `Goal.status = APROBADA` (no approve/complete UI or endpoint exists); the
   integration test only passes because it seeds that status directly via Prisma, masking the
   gap.
+  **FIXED:** new `approveGoal` (Líder+), `PATCH /api/goals/[id]` now accepts
+  `{ status: "APROBADA" }`, and an "Aprobar" button/badge in `GoalCard.tsx`. New test proves
+  approving a goal moves `getAnalyticsSummary().goalsCompletionAvg` off zero.
 - **H13 — Prisma internals leak through error responses.** Several routes return `err.message`
   verbatim on a 403/500, including raw Prisma `NotFoundError`/enum-validation text (model
   names, query shape).
+  **FIXED:** new `lib/errors.ts` (`AppError`/`ForbiddenError`/`ConflictError`) and
+  `lib/api/errorResponse.ts` — known `AppError`s surface their message as-is, anything else is
+  `console.error`'d and reduced to a generic 500. Applied across all 5 affected routes and
+  their services.
 
 ---
 

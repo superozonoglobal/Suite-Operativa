@@ -1,6 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { registerAction } from "@/lib/actions/register";
 import { ROLES } from "@/lib/constants";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid: "Revisá los datos: nombre, email válido y contraseña de al menos 8 caracteres.",
@@ -24,7 +26,17 @@ export default async function RegisterPage({
         action={registerAction}
         className="flex w-full max-w-sm flex-col gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-10"
       >
-        <h1 className="text-2xl font-bold text-[var(--text)]">Crear cuenta</h1>
+        <div className="flex items-center gap-2">
+          <Image
+            src="/icono-ozono.png"
+            alt="Super Ozono"
+            width={32}
+            height={32}
+            unoptimized
+            className="object-contain"
+          />
+          <h1 className="text-2xl font-bold text-[var(--text)]">Crear cuenta</h1>
+        </div>
         <p className="text-sm text-[var(--text-muted)]">
           Solo para el equipo de Suite Operativa. Si tu email no está autorizado, contactá al superusuario.
         </p>
@@ -57,9 +69,8 @@ export default async function RegisterPage({
 
         <label className="flex flex-col gap-1 text-sm text-[var(--text-muted)]">
           Contraseña
-          <input
+          <PasswordInput
             name="password"
-            type="password"
             required
             minLength={8}
             pattern="(?=.*[A-Z])(?=.*[0-9]).{8,}"

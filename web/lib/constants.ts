@@ -6,7 +6,7 @@ export const ROLES = [
   { id: "DISENADOR", name: "Diseñador", area: "Creativo" },
   { id: "FILMMAKER", name: "Filmmaker", area: "Producción" },
   { id: "EDITOR_VIDEO", name: "Editor de Video", area: "Producción" },
-  { id: "COMMUNITY_MANAGER", name: "Community Manager", area: "Social" },
+  { id: "COMMUNITY_MANAGER", name: "Project Manager", area: "Social" },
   { id: "TRAFIKER", name: "Trafiker", area: "Pauta" },
   { id: "ECOMMERCE", name: "Encargado de Ecommerce", area: "Comercial" },
   { id: "ASESOR", name: "Asesor", area: "Comercial" },

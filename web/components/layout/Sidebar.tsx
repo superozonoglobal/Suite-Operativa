@@ -39,7 +39,7 @@ export function Sidebar({ user }: { user: SidebarUser }) {
           }}
         >
           <button type="submit" className="mt-2 text-xs text-[var(--text-faint)] hover:text-[var(--accent)]">
-            Cambiar usuario
+            Cerrar sesión
           </button>
         </form>
       </div>

@@ -5,12 +5,15 @@ import { useState } from "react";
 export function ConfigForm({
   initialDomain,
   initialEmails,
+  initialOpenRegistration,
 }: {
   initialDomain: string;
   initialEmails: string[];
+  initialOpenRegistration: boolean;
 }) {
   const [domain, setDomain] = useState(initialDomain);
   const [emails, setEmails] = useState(initialEmails.join("\n"));
+  const [openRegistration, setOpenRegistration] = useState(initialOpenRegistration);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -23,6 +26,7 @@ export function ConfigForm({
       body: JSON.stringify({
         allowedEmailDomain: domain,
         allowedEmails: emails.split("\n").map((e) => e.trim()).filter(Boolean),
+        openRegistration,
       }),
     });
     setSaving(false);
@@ -49,6 +53,20 @@ export function ConfigForm({
           className="rounded-md border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-[var(--text)]"
         />
       </label>
+      <label className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+        <input
+          type="checkbox"
+          checked={openRegistration}
+          onChange={(e) => setOpenRegistration(e.target.checked)}
+        />
+        Registro abierto a cualquier email (ignora el dominio y la lista de arriba)
+      </label>
+      {openRegistration && (
+        <p className="text-xs text-[var(--danger)]">
+          Cuidado: con esto activado, cualquiera puede crear una cuenta. Desactivalo apenas termine el
+          onboarding inicial.
+        </p>
+      )}
       <div className="flex items-center gap-3">
         <button
           type="button"

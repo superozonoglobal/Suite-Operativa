@@ -68,4 +68,20 @@ describe("isEmailAllowed", () => {
 
     expect(await isEmailAllowed("random@gmail.com")).toBe(false);
   });
+
+  it("allows any email when OrgSettings.openRegistration is true", async () => {
+    await prisma.orgSettings.create({
+      data: { allowedEmails: [], openRegistration: true },
+    });
+
+    expect(await isEmailAllowed("anyone-at-all@example.com")).toBe(true);
+  });
+
+  it("still enforces the allow-list when openRegistration is false", async () => {
+    await prisma.orgSettings.create({
+      data: { allowedEmails: [], openRegistration: false },
+    });
+
+    expect(await isEmailAllowed("anyone-at-all@example.com")).toBe(false);
+  });
 });

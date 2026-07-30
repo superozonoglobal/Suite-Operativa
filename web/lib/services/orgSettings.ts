@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ForbiddenError } from "@/lib/errors";
+import { isAtLeastLevel } from "@/lib/authz";
+import type { User } from "@/app/generated/prisma/client";
 
 export async function getOrgSettings() {
   const existing = await prisma.orgSettings.findFirst();
@@ -8,11 +10,11 @@ export async function getOrgSettings() {
 }
 
 export async function updateOrgSettings(
-  input: { allowedEmailDomain?: string; allowedEmails?: string[] },
-  actingUser: { level: string }
+  input: { allowedEmailDomain?: string; allowedEmails?: string[]; openRegistration?: boolean },
+  actingUser: { level: User["level"] }
 ) {
-  if (actingUser.level !== "SUPERUSER") {
-    throw new ForbiddenError("Forbidden: only Superusuario can change these settings");
+  if (!isAtLeastLevel(actingUser.level, "PROJECT_MANAGER")) {
+    throw new ForbiddenError("Forbidden: only Project Manager or Superusuario can change these settings");
   }
 
   const settings = await getOrgSettings();
@@ -21,6 +23,7 @@ export async function updateOrgSettings(
     data: {
       allowedEmailDomain: input.allowedEmailDomain,
       allowedEmails: input.allowedEmails,
+      openRegistration: input.openRegistration,
     },
   });
 }

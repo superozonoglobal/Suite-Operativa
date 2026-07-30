@@ -398,5 +398,6 @@ model OrgSettings {
   id                 String   @id @default(cuid())
   allowedEmailDomain String?
   allowedEmails      String[]
+  openRegistration   Boolean  @default(false)
   updatedAt          DateTime @updatedAt
 }

@@ -12,6 +12,8 @@ export async function isEmailAllowed(email: string): Promise<boolean> {
 
   const settings = await getOrgSettings();
 
+  if (settings.openRegistration) return true;
+
   if (
     settings.allowedEmailDomain &&
     normalized.endsWith(`@${settings.allowedEmailDomain.toLowerCase()}`)

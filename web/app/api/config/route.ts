@@ -3,10 +3,12 @@ import { auth } from "@/lib/auth";
 import { getOrgSettings, updateOrgSettings } from "@/lib/services/orgSettings";
 import { z } from "zod";
 import { errorResponse } from "@/lib/api/errorResponse";
+import type { User } from "@/app/generated/prisma/client";
 
 const updateConfigSchema = z.object({
   allowedEmailDomain: z.string().optional(),
   allowedEmails: z.array(z.string().email()).optional(),
+  openRegistration: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -35,7 +37,9 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const settings = await updateOrgSettings(parsed.data, { level: session.user.level ?? "" });
+    const settings = await updateOrgSettings(parsed.data, {
+      level: session.user.level as User["level"],
+    });
     return NextResponse.json({ data: settings, meta: {}, errors: [] });
   } catch (err) {
     return errorResponse(err);

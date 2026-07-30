@@ -19,9 +19,15 @@ describe("orgSettings service", () => {
     expect(second.id).toBe(first.id);
   });
 
-  it("rejects updates by a non-SUPERUSER actor", async () => {
+  it("rejects updates by a LIDER actor", async () => {
     await expect(
-      updateOrgSettings({ allowedEmailDomain: "example.com" }, { level: "PROJECT_MANAGER" })
+      updateOrgSettings({ allowedEmailDomain: "example.com" }, { level: "LIDER" })
+    ).rejects.toThrow(/permission|forbidden/i);
+  });
+
+  it("rejects updates by a COLABORADOR actor", async () => {
+    await expect(
+      updateOrgSettings({ allowedEmailDomain: "example.com" }, { level: "COLABORADOR" })
     ).rejects.toThrow(/permission|forbidden/i);
   });
 
@@ -32,5 +38,18 @@ describe("orgSettings service", () => {
     );
     expect(updated.allowedEmailDomain).toBe("superozonoglobal.com");
     expect(updated.allowedEmails).toEqual(["extra@example.com"]);
+  });
+
+  it("allows a PROJECT_MANAGER to update the allow-list", async () => {
+    const updated = await updateOrgSettings(
+      { allowedEmailDomain: "pm-test.com" },
+      { level: "PROJECT_MANAGER" }
+    );
+    expect(updated.allowedEmailDomain).toBe("pm-test.com");
+  });
+
+  it("allows a PROJECT_MANAGER to toggle openRegistration", async () => {
+    const updated = await updateOrgSettings({ openRegistration: true }, { level: "PROJECT_MANAGER" });
+    expect(updated.openRegistration).toBe(true);
   });
 });

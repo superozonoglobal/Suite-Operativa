@@ -11,6 +11,7 @@ const ROLE_TAG_VALUES = [
   "COMMUNITY_MANAGER",
   "TRAFIKER",
   "ECOMMERCE",
+  "ASESOR",
 ] as const;
 
 const LEVEL_VALUES = ["SUPERUSER", "PROJECT_MANAGER", "LIDER", "COLABORADOR"] as const;

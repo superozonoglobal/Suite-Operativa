@@ -9,6 +9,7 @@ export const ROLES = [
   { id: "COMMUNITY_MANAGER", name: "Community Manager", area: "Social" },
   { id: "TRAFIKER", name: "Trafiker", area: "Pauta" },
   { id: "ECOMMERCE", name: "Encargado de Ecommerce", area: "Comercial" },
+  { id: "ASESOR", name: "Asesor", area: "Comercial" },
 ] as const;
 
 export const LEVELS = [

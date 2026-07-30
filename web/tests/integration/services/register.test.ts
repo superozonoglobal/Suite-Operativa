@@ -13,6 +13,7 @@ const TEST_EMAILS = [
   "outsider@gmail.com",
   "existing-user-no-password@superozonoglobal.com",
   "role-test@superozonoglobal.com",
+  "asesor-test@superozonoglobal.com",
   "passwordless-superuser@superozonoglobal.com",
   "passwordless-pm@superozonoglobal.com",
 ];
@@ -92,6 +93,16 @@ describe("registerUser", () => {
       roleTag: "DISENADOR",
     });
     expect(user.roleTag).toBe("DISENADOR");
+  });
+
+  it("persists the ASESOR roleTag", async () => {
+    const user = await registerUser({
+      name: "Asesor Test",
+      email: "asesor-test@superozonoglobal.com",
+      password: "password123",
+      roleTag: "ASESOR",
+    });
+    expect(user.roleTag).toBe("ASESOR");
   });
 
   it("rejects claiming a passwordless SUPERUSER row via self-registration", async () => {

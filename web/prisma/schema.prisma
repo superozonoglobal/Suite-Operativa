@@ -63,6 +63,7 @@ enum RoleTag {
   COMMUNITY_MANAGER
   TRAFIKER
   ECOMMERCE
+  ASESOR
 }
 
 enum Level {

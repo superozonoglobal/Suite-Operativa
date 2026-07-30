@@ -11,9 +11,9 @@ libs and app code inline). The team (~10 people, 1 director) uses this daily in
 production at `superozono.dgazcarate.online`. The user wants a rewrite that is
 "more solid": Next.js frontend, a real backend, and a real database.
 
-A prior session had already started a separate Express + Sequelize + PostgreSQL
-backend under `backend/` (plan: `docs/superpowers/plans/2026-07-28-suite-operativa-fullstack.md`).
-Only Task 0-1 (an empty Express skeleton — `app.js` with `helmet`/`cors`/`/health`,
+An earlier plan had already started a separate Express + Sequelize + PostgreSQL
+backend under `backend/`. Only Task 0-1 (an empty Express skeleton — `app.js`
+with `helmet`/`cors`/`/health`,
 no routes, no models, no server `listen()`) was ever committed. No route, model, or
 test code exists yet, so switching direction here costs effectively nothing.
 
@@ -31,17 +31,15 @@ single deploy unit.
    auth-session plumbing (Auth.js session on the Next.js side, JWT verification
    again on the Express side). Rejected: no evidence of a need for an independently
    scalable or independently deployable backend — the team is ~10 users.
-2. **Keep Apps Script + Sheets, just modernize the frontend build (Vite)** — this is
-   what `RECONCILIACION_BLUEPRINT.md` proposed. Rejected per explicit user
-   direction: "eso lo estaban montando con Google Sheets... necesito algo más
-   sólido" — Sheets-as-database has no real transactions, no relational integrity,
-   and no practical way to do the RBAC/reporting/analytics modules 12 screens
-   need. `RECONCILIACION_BLUEPRINT.md` remains valid as historical record but is
-   superseded for this initiative.
+2. **Keep Apps Script + Sheets, just modernize the frontend build (Vite)** — an
+   earlier reconciliation proposal. Rejected per explicit user direction: "eso lo
+   estaban montando con Google Sheets... necesito algo más sólido" —
+   Sheets-as-database has no real transactions, no relational integrity, and no
+   practical way to do the RBAC/reporting/analytics modules 12 screens need.
 3. **Next.js full-stack monolith (chosen)** — one language (TypeScript) end to end,
    one deploy (Vercel), Route Handlers give a real HTTP API boundary without a
    second process, Server Actions cut boilerplate for simple mutations. Matches
-   Hydraia's monolith-by-default rule (microservices require evidence of an
+   a monolith-by-default approach (microservices require evidence of an
    independent-scaling need, which does not exist here).
 
 ## Consequences

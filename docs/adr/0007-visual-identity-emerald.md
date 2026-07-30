@@ -11,8 +11,8 @@ Two visual directions exist in the codebase for the "same" identity:
    the CURRENT live production look, e.g. `Dashboard.png`'s lime progress bars and
    active-nav highlight).
 2. **Emerald/mint** (`#10b981`/`#45fc9c`), Plus Jakarta Sans — a rebrand designed
-   2026-07-28 (`REBRAND_DESIGN.md`) to align the internal tool with the real public
-   marketing site, `superozonoglobal.com`. Applied only to the dev harness
+   2026-07-28 to align the internal tool with the real public marketing site,
+   `superozonoglobal.com`. Applied only to the dev harness
    (`index.dev.html`), never shipped to the production `index.html` the team
    actually uses.
 This mismatch was surfaced to the user directly (options shown side by side with
@@ -20,7 +20,7 @@ exact hex values); the user chose emerald.
 
 ## Decision
 The Next.js rewrite's design tokens (colors, the accent gradient, button text
-color, font pairing) are the **emerald** values from `REBRAND_DESIGN.md`'s token
+color, font pairing) are the **emerald** values from that rebrand's token
 table, ported as-is:
 ```
 --bg: #020d06        --accent: #10b981        --accent-ink: #ffffff
@@ -43,19 +43,17 @@ Logo: real mascot PNG from superozonoglobal.com/images/logo_ozono.png
    day-to-day familiar look. Rejected by the user in favor of aligning with the
    real company brand.
 2. **Emerald (the already-designed rebrand, chosen)** — already fully specified
-   token-by-token in `REBRAND_DESIGN.md` (including the exact 9 hardcoded-rgba
-   call sites it touches in the old CSS, useful as a checklist even though this is
-   a from-scratch Tailwind/CSS-variables setup, not a port of that file). Matches
+   token-by-token in an earlier rebrand design pass (implemented here as a
+   from-scratch Tailwind/CSS-variables setup, not a port of the old CSS). Matches
    the real public brand. Zero extra design work needed — token values are already
    decided and user-approved.
 
 ## Consequences
-- This satisfies Hydraia's Phase 2 "UX / visual direction" gate with concrete,
-  already-approved values — no separate `ui-ux-pro-max` design pass is needed for
-  color/type-scale/spacing, since those are inherited byte-for-byte from
-  `REBRAND_DESIGN.md`. New-to-this-rewrite UI (e.g. the Drive file picker/list
-  component, which has no chartreuse-era precedent) still needs concrete
-  component/interaction-state decisions — captured in the design spec's UX section.
+- Color, type-scale, and spacing tokens were already fully decided and
+  user-approved before implementation started, so no separate design pass was
+  needed for them. New-to-this-rewrite UI (e.g. the Drive file picker/list
+  component, which has no precedent in the old brand) still needed concrete
+  component/interaction-state decisions made during implementation.
 - Implementation is via Tailwind CSS v4 theme tokens / CSS custom properties (not a
   literal copy of `styles.css`, since this is a from-scratch Next.js/Tailwind build,
   not a CSS file port) — same values, idiomatic Tailwind config shape.

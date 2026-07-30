@@ -51,8 +51,7 @@ or Task directly inside the app.
 - Requires a Google Cloud project with the Drive API enabled, an OAuth consent
   screen (internal/testing mode is enough for a 10-person team), and a Picker API
   key — these are manual one-time setup steps for the user in Google Cloud Console,
-  called out explicitly as a plan task (they cannot be automated by an executor
-  agent).
+  called out explicitly as a follow-up task (they cannot be automated).
 - `Account.access_token` expiry (~1h) means every Drive call path must attempt a
   silent refresh via `Account.refresh_token` before calling the Drive API — this is
   a shared `getDriveClient(userId)` helper, not repeated per-route logic (see the

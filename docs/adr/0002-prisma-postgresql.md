@@ -5,8 +5,7 @@ Accepted — 2026-07-28
 
 ## Context
 ADR-0001 moves the backend into the Next.js process itself (TypeScript). The
-previous plan (`docs/superpowers/plans/2026-07-28-suite-operativa-fullstack.md`)
-had picked Sequelize (JS, no first-class TS types) paired with a separate Express
+previous plan had picked Sequelize (JS, no first-class TS types) paired with a separate Express
 backend. That pairing no longer applies once the backend lives inside Next.js.
 
 ## Decision

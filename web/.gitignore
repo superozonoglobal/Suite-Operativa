@@ -43,8 +43,7 @@ next-env.d.ts
 
 /app/generated/prisma
 
-# Prisma CLI's auto-generated AI-agent reference docs (regenerable via `prisma init`,
-# not application source)
+# Local editor/tooling scaffolding (regenerable, not application source)
 /.agents/skills
 /.claude/skills
 /.windsurf/skills

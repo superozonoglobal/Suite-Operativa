@@ -52,8 +52,7 @@ the `session` callback's per-request database lookup.
    accepted as a reasonable, well-documented trade for immediate usability.
 
 ## Consequences
-- `docs/hydraia/specs/2026-07-28-suite-operativa-nextjs-design.md`'s threat model
-  gains a new consideration: password storage. Mitigated with bcrypt (cost factor
+- The threat model gains a new consideration: password storage. Mitigated with bcrypt (cost factor
   10, matching the superseded plan's original choice) — passwords are never
   logged or returned in any API response, `passwordHash` is never selected in any
   query that serializes a `User` back to the client (a later task must audit for
